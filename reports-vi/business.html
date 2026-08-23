@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Báo cáo nghiệp vụ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>Báo cáo thiết kế</small></div></div>
+    <nav>
+      <a href="index.html">Tổng quan</a><a class="active" href="business.html">Nghiệp vụ</a><a href="architecture.html">Kiến trúc</a><a href="database.html">Dữ liệu</a><a href="api.html">API</a><a href="uiux.html">UI/UX</a><a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">Business Specification</p><h1>Nghiệp vụ hệ thống</h1></div><div class="status-pill">Internal HR</div></header>
+
+    <section class="grid two">
+      <article class="panel">
+        <h3>Actor</h3>
+        <div class="actor-list">
+          <div><strong>System Administrator</strong><span>Quản lý người dùng, vai trò, quyền.</span></div>
+          <div><strong>HR Manager</strong><span>Quản lý hồ sơ nhân viên và trạng thái.</span></div>
+          <div><strong>HR Staff</strong><span>Tạo, cập nhật hồ sơ theo quyền.</span></div>
+          <div><strong>Department Manager</strong><span>Xem nhân sự theo phạm vi được cấp.</span></div>
+          <div><strong>Employee Viewer</strong><span>Xem dữ liệu nhân viên được phép.</span></div>
+        </div>
+      </article>
+      <article class="panel">
+        <h3>Nguyên tắc nghiệp vụ</h3>
+        <ul class="check-list">
+          <li>Chỉ người dùng đã đăng nhập mới truy cập được hệ thống nội bộ.</li>
+          <li>Mỗi chức năng phải được kiểm soát bằng permission.</li>
+          <li>Email người dùng là duy nhất.</li>
+          <li>Mã nhân viên là duy nhất.</li>
+          <li>Nhân viên đã nghỉ việc vẫn được lưu để phục vụ lịch sử.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3>Workflow chính</h3>
+      <div class="timeline">
+        <div><b>1</b><strong>Đăng nhập</strong><span>Xác thực email, mật khẩu, trạng thái tài khoản.</span></div>
+        <div><b>2</b><strong>Quản lý nhân viên</strong><span>Tạo, cập nhật, tìm kiếm, đổi phòng ban, đổi trạng thái.</span></div>
+        <div><b>3</b><strong>Quản lý phòng ban</strong><span>Tạo, sửa, xem, xóa khi không vi phạm rule.</span></div>
+        <div><b>4</b><strong>Phân quyền</strong><span>Gán role cho user, gán permission cho role.</span></div>
+      </div>
+    </section>
+
+    <section class="grid three">
+      <article class="panel compact"><h3>Trạng thái nhân viên</h3><p>ACTIVE, INACTIVE, ON_LEAVE, PROBATION, TERMINATED.</p></article>
+      <article class="panel compact"><h3>Role</h3><p>Role gom nhiều permission và được gán cho user nội bộ.</p></article>
+      <article class="panel compact"><h3>Permission</h3><p>Dạng khóa: employee.read, employee.create, department.update.</p></article>
+    </section>
+  </main>
+</body>
+</html>

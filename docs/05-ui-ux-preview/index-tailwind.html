@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EmployeeOS Tailwind UI Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf3',
+              100: '#d1fadf',
+              500: '#12b76a',
+              600: '#039855',
+              700: '#027a48'
+            }
+          },
+          boxShadow: {
+            soft: '0 18px 50px rgba(16,24,40,.10)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { letter-spacing: 0; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .auth-page { display: none; }
+    .auth-page.active { display: grid; }
+    .app-shell { display: none; }
+    .app-shell.active { display: grid; }
+    .modal-open { display: flex; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-700 antialiased">
+  <div id="toast" class="fixed right-5 top-5 z-50 hidden rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-soft"></div>
+
+  <main id="authShell" class="auth-page active min-h-screen place-items-center bg-[radial-gradient(circle_at_top,_#d1fadf_0,_transparent_34%),linear-gradient(180deg,_#f8faf9,_#eef2f0)] px-4">
+    <section id="loginPage" class="w-full max-w-md">
+      <div class="mb-8 flex items-center justify-center gap-3">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500 text-lg font-black text-white shadow-lg shadow-emerald-200">E</div>
+        <div>
+          <div class="text-xl font-black text-slate-950">EmployeeOS</div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-brand-700">Green Momentum</div>
+        </div>
+      </div>
+      <form class="rounded-2xl border border-white/70 bg-white/95 p-8 shadow-soft backdrop-blur" onsubmit="event.preventDefault(); enterApp('employees')">
+        <div class="mb-7 text-center">
+          <h1 class="text-2xl font-black text-slate-950">Welcome back</h1>
+          <p class="mt-2 text-sm text-slate-500">Sign in to manage employees, approvals, and profile security.</p>
+        </div>
+        <label class="mb-2 block text-sm font-bold text-slate-700">Email</label>
+        <input class="mb-4 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none ring-brand-100 transition focus:border-brand-500 focus:ring-4" type="email" value="admin@example.com">
+        <div class="mb-2 flex items-center justify-between">
+          <label class="block text-sm font-bold text-slate-700">Password</label>
+          <button type="button" class="text-xs font-bold text-brand-700">Show</button>
+        </div>
+        <input class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none ring-brand-100 transition focus:border-brand-500 focus:ring-4" type="password" value="password">
+        <button class="mt-6 h-11 w-full rounded-lg bg-brand-500 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-brand-600">Login</button>
+        <button type="button" onclick="showAuth('forgotPage')" class="mt-4 w-full text-center text-sm font-bold text-brand-700">Forgot password?</button>
+      </form>
+    </section>
+
+    <section id="forgotPage" class="hidden w-full max-w-md">
+      <div class="mb-8 flex items-center justify-center gap-3">
+        <div class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500 text-lg font-black text-white shadow-lg shadow-emerald-200">E</div>
+        <div>
+          <div class="text-xl font-black text-slate-950">EmployeeOS</div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-brand-700">Account recovery</div>
+        </div>
+      </div>
+      <form class="rounded-2xl border border-white/70 bg-white/95 p-8 shadow-soft backdrop-blur" onsubmit="event.preventDefault(); toast('If the email is registered, password reset instructions will be sent.')">
+        <div class="mb-7 text-center">
+          <h1 class="text-2xl font-black text-slate-950">Forgot password</h1>
+          <p class="mt-2 text-sm text-slate-500">We will send reset instructions if the account exists.</p>
+        </div>
+        <label class="mb-2 block text-sm font-bold text-slate-700">Email</label>
+        <input class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none ring-brand-100 transition focus:border-brand-500 focus:ring-4" type="email" value="admin@example.com">
+        <button class="mt-6 h-11 w-full rounded-lg bg-brand-500 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-brand-600">Send instructions</button>
+        <button type="button" onclick="showAuth('loginPage')" class="mt-4 w-full text-center text-sm font-bold text-brand-700">Back to login</button>
+      </form>
+    </section>
+  </main>
+
+  <main id="appShell" class="app-shell min-h-screen grid-cols-[280px_1fr] lg:grid">
+    <aside class="hidden border-r border-slate-200 bg-slate-950 p-5 text-white lg:block">
+      <div class="mb-8 flex items-center gap-3">
+        <div class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 font-black">E</div>
+        <div>
+          <div class="font-black">EmployeeOS</div>
+          <div class="text-xs font-semibold text-emerald-300">Admin Workspace</div>
+        </div>
+      </div>
+      <div class="mb-3 px-3 text-xs font-bold uppercase text-slate-400">Employee</div>
+      <button data-nav="employees" onclick="showPage('employees')" class="nav-item mb-1 flex w-full items-center gap-3 rounded-xl bg-white/10 px-3 py-3 text-left text-sm font-bold text-white">List</button>
+      <button data-nav="create" onclick="showPage('create')" class="nav-item mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white">Create Employee</button>
+      <div class="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div class="text-sm font-black">Spec preview</div>
+        <p class="mt-1 text-xs leading-5 text-slate-400">Static HTML generated from UI/UX specs. Interactions are mock previews.</p>
+      </div>
+    </aside>
+
+    <section class="min-w-0">
+      <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur">
+        <div class="flex min-w-0 items-center gap-3">
+          <button id="backButton" onclick="goBack()" class="hidden h-9 w-9 shrink-0 rounded-lg border border-slate-200 bg-white text-lg font-black text-slate-600 shadow-sm hover:bg-slate-50" aria-label="Back">‹</button>
+          <div class="min-w-0">
+            <!-- #feeback move breadcrumb-->
+            <!-- <div id="breadcrumb" class="truncate text-xs font-bold text-slate-500">Employee / Employee List</div> -->
+            <!-- #end feeback-->
+            <div id="pageTitle" class="truncate text-lg font-black text-slate-950">Employees</div>
+          </div>
+        </div>
+        <div class="relative">
+          <button id="userMenuButton" onclick="toggleUserMenu()" class="flex items-center gap-3 rounded-xl border border-transparent px-2 py-1.5 transition hover:border-slate-200 hover:bg-white hover:shadow-sm" aria-expanded="false" aria-haspopup="true">
+            <div class="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-black text-brand-700">AD</div>
+            <div class="hidden text-left sm:block">
+              <div class="text-sm font-black text-slate-950">Admin User</div>
+              <div class="text-xs font-semibold text-slate-500">admin@example.com</div>
+            </div>
+            <span class="hidden text-slate-400 sm:block">⌄</span>
+          </button>
+          <div id="userDropdown" class="absolute right-0 top-12 z-30 hidden w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-2 shadow-soft">
+            <button onclick="showPage('changePassword'); closeUserMenu();" class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-brand-50 hover:text-brand-700">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-700">↻</span>
+              Change Password
+            </button>
+            <button onclick="logoutPreview()" class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-bold text-red-600 hover:bg-red-50">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600">⎋</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div class="p-4 sm:p-6 lg:p-8">
+        <!-- #feeback move breadcrumb fere-->
+        <div id="breadcrumb" class="truncate text-xs font-bold text-slate-500">Employee / Employee List</div>
+        <!-- #end feeback-->
+        <section id="employees" class="page active">
+          <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <!-- #feeback remove -->
+              <!-- <h1 class="text-3xl font-black text-slate-950">Employees</h1> -->
+              <!-- #feeback remove -->
+              <p class="mt-2 text-sm text-slate-500">Search, filter, and manage employee records with permission-aware actions.</p>
+            </div>
+            <!-- #feeback remove -->
+            <!-- <button onclick="showPage('create')" class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-black text-white shadow-lg shadow-emerald-100 hover:bg-brand-600">Create Employee</button> -->
+            <!-- #feeback remove -->
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-col gap-3 border-b border-slate-200 p-4 xl:flex-row xl:items-center xl:justify-between">
+              <div class="grid gap-3 md:grid-cols-[minmax(240px,1fr)_220px_180px] xl:w-[720px]">
+                <input class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none ring-brand-100 focus:border-brand-500 focus:ring-4" value="Mai" aria-label="Search employees">
+                <select class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500" disabled><option>Department filter blocked</option></select>
+                <select class="h-10 rounded-lg border border-slate-200 px-3 text-sm"><option>Status pending</option></select>
+              </div>
+              <button onclick="showPage('create')" class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-black text-white shadow-lg shadow-emerald-100 hover:bg-brand-600">Create Employee</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[900px] text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-black uppercase text-slate-500">
+                  <tr><th class="px-4 py-3">Employee Code</th><th class="px-4 py-3">Full Name</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Phone</th><th class="px-4 py-3">Department</th><th class="px-4 py-3">Position</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr onclick="showPage('detail')" class="cursor-pointer hover:bg-slate-50"><td class="px-4 py-4 font-black text-slate-950">EMP-001</td><td class="px-4 py-4">Mai Nguyen</td><td class="px-4 py-4">mai@example.com</td><td class="px-4 py-4">090 123 4567</td><td class="px-4 py-4 text-slate-400">Pending</td><td class="px-4 py-4">HR Lead</td><td class="px-4 py-4"><span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-black text-brand-700">Active</span></td><td class="px-4 py-4"><div class="flex gap-2"><button onclick="event.stopPropagation(); showPage('detail')" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Detail</button><button onclick="event.stopPropagation(); showPage('edit')" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Edit</button><button onclick="event.stopPropagation(); openModal('delete')" class="rounded-lg border border-red-100 px-3 py-2 font-bold text-red-600">Delete</button></div></td></tr>
+                  <tr onclick="showPage('detail')" class="cursor-pointer hover:bg-slate-50"><td class="px-4 py-4 font-black text-slate-950">EMP-002</td><td class="px-4 py-4">An Tran</td><td class="px-4 py-4">an@example.com</td><td class="px-4 py-4">090 555 2211</td><td class="px-4 py-4 text-slate-400">Pending</td><td class="px-4 py-4">Engineer</td><td class="px-4 py-4"><span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700">Draft</span></td><td class="px-4 py-4"><div class="flex gap-2"><button onclick="event.stopPropagation(); showPage('detail')" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Detail</button><button onclick="event.stopPropagation(); showPage('edit')" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Edit</button><button onclick="event.stopPropagation(); openModal('delete')" class="rounded-lg border border-red-100 px-3 py-2 font-bold text-red-600">Delete</button></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <div class="font-semibold text-slate-500">Showing 1-2 of 248 employees</div>
+              <div class="flex items-center gap-2">
+                <button class="h-9 rounded-lg border border-slate-200 px-3 font-bold text-slate-400" disabled>Previous</button>
+                <button class="h-9 rounded-lg bg-brand-500 px-3 font-black text-white">1</button>
+                <button class="h-9 rounded-lg border border-slate-200 px-3 font-bold text-slate-700">2</button>
+                <button class="h-9 rounded-lg border border-slate-200 px-3 font-bold text-slate-700">Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="create" class="page">
+          <div class="mb-6"><h1 class="text-3xl font-black text-slate-950">Create Employee</h1><p class="mt-2 text-sm text-slate-500">Save opens a polished confirm popup before mutation.</p></div>
+          <form class="space-y-5">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="mb-4 text-base font-black text-slate-950">Basic Information</h2>
+              <div class="grid gap-4 md:grid-cols-2">
+                <Field label="Employee code" value="EMP-003"></Field>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2" data-form="basic"></div>
+            </div>
+          </form>
+          <div id="createForm"></div>
+        </section>
+
+        <section id="edit" class="page"></section>
+        <section id="detail" class="page"></section>
+        <section id="changePassword" class="page"></section>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/60 p-4">
+    <div class="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-soft">
+      <div class="flex gap-4 p-6">
+        <div id="modalIcon" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-lg font-black text-brand-700">✓</div>
+        <div>
+          <h2 id="modalTitle" class="text-xl font-black text-slate-950">Confirm</h2>
+          <p id="modalText" class="mt-1 text-sm leading-6 text-slate-500">Please review before continuing.</p>
+        </div>
+      </div>
+      <div id="modalBody" class="mx-6 rounded-xl border border-slate-200"></div>
+      <div class="flex flex-col-reverse gap-3 p-6 sm:flex-row sm:justify-end">
+        <button onclick="closeModal()" class="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 hover:bg-slate-50">Cancel</button>
+        <button id="modalConfirm" onclick="confirmModal()" class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-black text-white hover:bg-brand-600">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pageMeta = {
+      employees: { title: 'Employees', breadcrumb: 'Employee / Employee List', back: null, nav: 'employees' },
+      create: { title: 'Create Employee', breadcrumb: 'Employee / Create Employee', back: 'employees', nav: 'create' },
+      detail: { title: 'Employee Detail', breadcrumb: 'Employee / Employee List / Detail', back: 'employees', nav: 'employees' },
+      edit: { title: 'Edit Employee', breadcrumb: 'Employee / Employee List / Detail / Edit', back: 'detail', nav: 'employees' },
+      changePassword: { title: 'Change Password', breadcrumb: 'Account / Change Password', back: 'employees', nav: null }
+    };
+    let modalType = 'create';
+
+    const field = (label, value, type = 'text', hint = '') => `
+      <label class="block">
+        <span class="mb-2 block text-sm font-black text-slate-700">${label}</span>
+        <input type="${type}" value="${value}" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none ring-brand-100 transition focus:border-brand-500 focus:ring-4">
+        ${hint ? `<span class="mt-2 block text-xs font-semibold text-slate-400">${hint}</span>` : ''}
+      </label>`;
+
+    const formShell = (mode) => `
+      <div class="space-y-5">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-4 text-base font-black text-slate-950">Basic Information</h2>
+          <div class="grid gap-4 md:grid-cols-2">
+            ${field('Employee code', mode === 'create' ? 'EMP-003' : 'EMP-001')}
+            <label class="block"><span class="mb-2 block text-sm font-black text-slate-700">Status</span><select class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm"><option>${mode === 'create' ? 'Pending approval' : 'Active'}</option></select></label>
+            ${field('First name', mode === 'create' ? 'Lan' : 'Mai')}
+            ${field('Last name', mode === 'create' ? 'Pham' : 'Nguyen')}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-4 text-base font-black text-slate-950">Contact Information</h2>
+          <div class="grid gap-4 md:grid-cols-2">
+            ${field('Email', mode === 'create' ? 'lan@example.com' : 'mai.updated@example.com', 'email')}
+            ${field('Phone', mode === 'create' ? '090 777 8888' : '090 123 4567')}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-4 text-base font-black text-slate-950">Organization Information</h2>
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block"><span class="mb-2 block text-sm font-black text-slate-700">Department</span><select disabled class="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-400"><option>Blocked until Department spec approved</option></select><span class="mt-2 block text-xs font-semibold text-slate-400">Department data source is pending.</span></label>
+            ${field('Position', mode === 'create' ? 'Recruiter' : 'People Lead')}
+          </div>
+        </div>
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button onclick="showPage('${mode === 'create' ? 'employees' : 'detail'}')" class="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button onclick="openModal('${mode === 'create' ? 'create' : 'update'}')" class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-black text-white hover:bg-brand-600">${mode === 'create' ? 'Save' : 'Save Changes'}</button>
+        </div>
+      </div>`;
+
+    document.getElementById('create').innerHTML = `<div class="mb-6"><h1 class="text-3xl font-black text-slate-950">Create Employee</h1><p class="mt-2 text-sm text-slate-500">Save opens confirmation before calling the create API.</p></div>${formShell('create')}`;
+    document.getElementById('edit').innerHTML = `<div class="mb-6"><h1 class="text-3xl font-black text-slate-950">Edit Employee</h1><p class="mt-2 text-sm text-slate-500">Only changed fields appear in the confirmation summary.</p></div>${formShell('edit')}`;
+    document.getElementById('detail').innerHTML = `
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><h1 class="text-3xl font-black text-slate-950">Employee Detail</h1><p class="mt-2 text-sm text-slate-500">Read-only detail grouped by section.</p></div>
+        <div class="flex gap-2"><button onclick="showPage('edit')" class="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-700">Edit</button><button onclick="openModal('delete')" class="h-10 rounded-lg bg-red-600 px-4 text-sm font-black text-white">Delete</button></div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 class="mb-4 text-base font-black text-slate-950">Employee Information</h2>
+        <div class="grid gap-3 md:grid-cols-3">
+          ${info('Employee code','EMP-001')}${info('Full name','Mai Nguyen')}${info('Status','Active')}${info('Email','mai@example.com')}${info('Department','Pending')}${info('Position','HR Lead')}
+        </div>
+      </div>`;
+    document.getElementById('changePassword').innerHTML = `
+      <div class="grid min-h-[calc(100vh-8rem)] place-items-center">
+        <section class="w-full max-w-md">
+          <div class="mb-8 flex items-center justify-center gap-3">
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500 text-lg font-black text-white shadow-lg shadow-emerald-200">E</div>
+            <div>
+              <div class="text-xl font-black text-slate-950">EmployeeOS</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-brand-700">Account security</div>
+            </div>
+          </div>
+          <form onsubmit="event.preventDefault(); toast('Password changed successfully.')" class="rounded-2xl border border-white/70 bg-white/95 p-8 shadow-soft backdrop-blur">
+            <div class="mb-7 text-center">
+              <h1 class="text-2xl font-black text-slate-950">Change Password</h1>
+              <p class="mt-2 text-sm text-slate-500">Update your password to keep your employee workspace secure.</p>
+            </div>
+            <div class="space-y-4">
+              ${field('Current password','current','password')}
+              ${field('New password','new-password','password','Must satisfy approved password policy.')}
+              ${field('Confirm new password','new-password','password','Must match the new password.')}
+            </div>
+            <button class="mt-6 h-11 w-full rounded-lg bg-brand-500 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-brand-600">Change Password</button>
+            <button type="button" onclick="showPage('employees')" class="mt-4 w-full text-center text-sm font-bold text-brand-700">Back to employees</button>
+          </form>
+        </section>
+      </div>`;
+
+    function info(label, value) {
+      return `<div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="text-xs font-black uppercase text-slate-400">${label}</div><div class="mt-2 font-black text-slate-950">${value}</div></div>`;
+    }
+    function showAuth(id) {
+      document.getElementById('loginPage').classList.toggle('hidden', id !== 'loginPage');
+      document.getElementById('forgotPage').classList.toggle('hidden', id !== 'forgotPage');
+    }
+    function toggleUserMenu() {
+      const menu = document.getElementById('userDropdown');
+      const button = document.getElementById('userMenuButton');
+      const willOpen = menu.classList.contains('hidden');
+      menu.classList.toggle('hidden', !willOpen);
+      button.setAttribute('aria-expanded', String(willOpen));
+    }
+    function closeUserMenu() {
+      document.getElementById('userDropdown').classList.add('hidden');
+      document.getElementById('userMenuButton').setAttribute('aria-expanded', 'false');
+    }
+    function logoutPreview() {
+      closeUserMenu();
+      document.getElementById('appShell').classList.remove('active');
+      document.getElementById('authShell').classList.add('active');
+      showAuth('loginPage');
+      toast('Logged out.');
+    }
+    function enterApp(page) {
+      document.getElementById('authShell').classList.remove('active');
+      document.getElementById('appShell').classList.add('active');
+      showPage(page);
+    }
+    function goBack() {
+      const active = document.querySelector('.page.active');
+      const id = active ? active.id : 'employees';
+      const target = pageMeta[id]?.back || 'employees';
+      showPage(target);
+    }
+    function showPage(id) {
+      const meta = pageMeta[id] || pageMeta.employees;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById('pageTitle').textContent = meta.title;
+      document.getElementById('breadcrumb').textContent = meta.breadcrumb;
+      document.getElementById('backButton').classList.toggle('hidden', !meta.back);
+      document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.remove('bg-white/10','text-white');
+        n.classList.add('text-slate-300');
+      });
+      const nav = meta.nav ? document.querySelector(`[data-nav="${meta.nav}"]`) : null;
+      if (nav) {
+        nav.classList.add('bg-white/10','text-white');
+        nav.classList.remove('text-slate-300');
+      }
+      closeUserMenu();
+    }
+    function summaryRows(rows) {
+      return rows.map(([k,v]) => `<div class="grid gap-1 border-b border-slate-100 px-4 py-3 last:border-0 sm:grid-cols-[150px_1fr]"><span class="text-sm font-bold text-slate-500">${k}</span><strong class="text-sm text-slate-950">${v}</strong></div>`).join('');
+    }
+    function openModal(type) {
+      modalType = type;
+      const icon = document.getElementById('modalIcon');
+      const confirm = document.getElementById('modalConfirm');
+      icon.className = 'grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-lg font-black text-brand-700';
+      confirm.className = 'h-10 rounded-lg bg-brand-500 px-4 text-sm font-black text-white hover:bg-brand-600';
+      if (type === 'create') {
+        modalTitle.textContent = 'Confirm Create Employee';
+        modalText.textContent = 'Please review the employee information before creating this employee.';
+        modalBody.innerHTML = summaryRows([['Employee code','EMP-003'],['Full name','Lan Pham'],['Email','lan@example.com'],['Department','Blocked'],['Position','Recruiter']]);
+        confirm.textContent = 'Confirm submit';
+      } else if (type === 'update') {
+        modalTitle.textContent = 'Confirm Update Employee';
+        modalText.textContent = 'Please review the changed fields before updating this employee.';
+        modalBody.innerHTML = summaryRows([['Email','mai@example.com → mai.updated@example.com'],['Position','HR Lead → People Lead']]);
+        confirm.textContent = 'Confirm update';
+      } else {
+        icon.className = 'grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-50 text-lg font-black text-red-600';
+        confirm.className = 'h-10 rounded-lg bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700';
+        modalTitle.textContent = 'Confirm Delete Employee';
+        modalText.textContent = 'This action may remove the employee from the system. Please review before continuing.';
+        modalBody.innerHTML = summaryRows([['Employee code','EMP-001'],['Full name','Mai Nguyen'],['Email','mai@example.com'],['Position','HR Lead']]);
+        confirm.textContent = 'Confirm delete';
+      }
+      document.getElementById('modal').classList.add('modal-open');
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modal').classList.remove('modal-open');
+    }
+    function confirmModal() {
+      closeModal();
+      if (modalType === 'delete') { toast('Employee deleted successfully.'); showPage('employees'); return; }
+      if (modalType === 'update') { toast('Employee updated successfully.'); showPage('detail'); return; }
+      toast('Employee created successfully.'); showPage('employees');
+    }
+    function toast(message) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 2600);
+    }
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('userDropdown');
+      const button = document.getElementById('userMenuButton');
+      if (!menu || !button || menu.classList.contains('hidden')) return;
+      if (!menu.contains(event.target) && !button.contains(event.target)) closeUserMenu();
+    });
+    function bootFromHash() {
+      const route = (window.location.hash || '#login').replace('#', '');
+      if (route === 'login') {
+        document.getElementById('authShell').classList.add('active');
+        document.getElementById('appShell').classList.remove('active');
+        showAuth('loginPage');
+        return;
+      }
+      if (route === 'forgot-password') {
+        document.getElementById('authShell').classList.add('active');
+        document.getElementById('appShell').classList.remove('active');
+        showAuth('forgotPage');
+        return;
+      }
+      const pageMap = {
+        'change-password': 'changePassword',
+        'employee-list': 'employees',
+        'employee-create': 'create',
+        'employee-detail': 'detail',
+        'employee-edit': 'edit'
+      };
+      enterApp(pageMap[route] || 'employees');
+    }
+    bootFromHash();
+  </script>
+</body>
+</html>

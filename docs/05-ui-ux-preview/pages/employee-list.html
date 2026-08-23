@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employee List - EmployeeOS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#ecfdf3',100:'#d1fadf',500:'#12b76a',600:'#039855',700:'#027a48'}},boxShadow:{soft:'0 18px 50px rgba(16,24,40,.10)'}}}}</script>
+</head>
+<body class="bg-slate-50 text-slate-700 antialiased">
+  <main class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+    <aside class="hidden bg-slate-950 p-5 text-white lg:block">
+      <div class="mb-8 flex items-center gap-3"><div class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 font-black">E</div><div><div class="font-black">EmployeeOS</div><div class="text-xs font-semibold text-emerald-300">Admin Workspace</div></div></div>
+      <button onclick="toggleMenu()" class="flex w-full items-center justify-between rounded-xl bg-white/10 px-3 py-3 text-left text-sm font-black text-white"><span>▦ Employee</span><span id="chev">⌄</span></button>
+      <div id="employeeChildren" class="mt-2 space-y-1 pl-3">
+        <a href="employee-list.html" class="flex items-center gap-3 rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white"><span>☷</span>Employee List</a>
+        <a href="employee-create.html" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-slate-300 hover:bg-white/10"><span>＋</span>Create Employee</a>
+      </div>
+    </aside>
+    <section class="min-w-0">
+      <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur">
+        <div class="text-lg font-black text-slate-950">Employees</div>
+        <div class="relative"><button onclick="toggleUser()" class="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-white hover:shadow"><div class="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-black text-brand-700">AD</div><div class="hidden text-left sm:block"><div class="text-sm font-black text-slate-950">Admin User</div><div class="text-xs text-slate-500">admin@example.com</div></div></button><div id="userMenu" class="absolute right-0 top-12 hidden w-56 rounded-xl border border-slate-200 bg-white py-2 shadow-soft"><a href="change-password.html" class="block px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-brand-50">↻ Change Password</a><a href="login.html" class="block px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50">⎋ Logout</a></div></div>
+      </header>
+      <div class="p-4 sm:p-6 lg:p-8">
+        <nav class="mb-3 text-xs font-bold text-slate-500" aria-label="Breadcrumb">
+          <a href="employee-list.html" class="text-brand-700 hover:underline">Employee</a>
+          <span class="px-1 text-slate-400">/</span>
+          <span>Employee List</span>
+        </nav>
+        <p class="mb-4 text-sm text-slate-500">Search, filter, and manage employee records with permission-aware actions.</p>
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex flex-col gap-3 border-b border-slate-200 p-4 xl:flex-row xl:items-center xl:justify-between">
+            <div class="grid gap-3 md:grid-cols-[minmax(240px,1fr)_220px_180px] xl:w-[720px]"><input class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none ring-brand-100 focus:border-brand-500 focus:ring-4" value="Mai"><select disabled class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"><option>Department filter blocked</option></select><select class="h-10 rounded-lg border border-slate-200 px-3 text-sm"><option>Status pending</option></select></div>
+            <a href="employee-create.html" class="inline-flex h-10 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-black text-white shadow-lg shadow-emerald-100 hover:bg-brand-600">Create Employee</a>
+          </div>
+          <!-- #feeback add class h-[calc(100vh-380px)] and overflow-auto-->
+          <div class="overflow-auto h-[calc(100vh-380px)]"><table class="w-full min-w-[900px] text-left text-sm"><thead class="bg-slate-50 text-xs font-black uppercase text-slate-500"><tr><th class="px-4 py-3">Employee Code</th><th class="px-4 py-3">Full Name</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Phone</th><th class="px-4 py-3">Department</th><th class="px-4 py-3">Position</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50"><td class="px-4 py-4 font-black text-slate-950">EMP-001</td><td class="px-4 py-4">Mai Nguyen</td><td class="px-4 py-4">mai@example.com</td><td class="px-4 py-4">090 123 4567</td><td class="px-4 py-4 text-slate-400">Pending</td><td class="px-4 py-4">HR Lead</td><td class="px-4 py-4"><span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-black text-brand-700">Active</span></td><td class="px-4 py-4"><div class="flex gap-2"><a href="employee-detail.html" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Detail</a><a href="employee-edit.html" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Edit</a><button onclick="openDelete()" class="rounded-lg border border-red-100 px-3 py-2 font-bold text-red-600">Delete</button></div></td></tr><tr class="hover:bg-slate-50"><td class="px-4 py-4 font-black text-slate-950">EMP-002</td><td class="px-4 py-4">An Tran</td><td class="px-4 py-4">an@example.com</td><td class="px-4 py-4">090 555 2211</td><td class="px-4 py-4 text-slate-400">Pending</td><td class="px-4 py-4">Engineer</td><td class="px-4 py-4"><span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700">Draft</span></td><td class="px-4 py-4"><div class="flex gap-2"><a href="employee-detail.html" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Detail</a><a href="employee-edit.html" class="rounded-lg border border-slate-200 px-3 py-2 font-bold">Edit</a><button onclick="openDelete()" class="rounded-lg border border-red-100 px-3 py-2 font-bold text-red-600">Delete</button></div></td></tr></tbody></table></div>
+          <div class="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"><div class="font-semibold text-slate-500">Showing 1-2 of 248 employees</div><div class="flex gap-2"><button disabled class="h-9 rounded-lg border border-slate-200 px-3 font-bold text-slate-400">Previous</button><button class="h-9 rounded-lg bg-brand-500 px-3 font-black text-white">1</button><button class="h-9 rounded-lg border border-slate-200 px-3 font-bold">2</button><button class="h-9 rounded-lg border border-slate-200 px-3 font-bold">Next</button></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="deleteModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/60 p-4"><div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-soft"><h2 class="text-xl font-black text-slate-950">Confirm Delete Employee</h2><p class="mt-1 text-sm text-slate-500">This action may remove the employee from the system.</p><div class="my-5 rounded-xl border border-slate-200"><div class="grid grid-cols-[150px_1fr] border-b px-4 py-3 text-sm"><span class="font-bold text-slate-500">Employee code</span><strong>EMP-001</strong></div><div class="grid grid-cols-[150px_1fr] px-4 py-3 text-sm"><span class="font-bold text-slate-500">Full name</span><strong>Mai Nguyen</strong></div></div><div class="flex justify-end gap-3"><button onclick="closeDelete()" class="h-10 rounded-lg border px-4 font-bold">Cancel</button><button onclick="closeDelete()" class="h-10 rounded-lg bg-red-600 px-4 font-black text-white">Confirm delete</button></div></div></div>
+  <script>function toggleMenu(){employeeChildren.classList.toggle('hidden');chev.textContent=employeeChildren.classList.contains('hidden')?'›':'⌄'}function toggleUser(){userMenu.classList.toggle('hidden')}function openDelete(){deleteModal.classList.remove('hidden');deleteModal.classList.add('flex')}function closeDelete(){deleteModal.classList.add('hidden');deleteModal.classList.remove('flex')}</script>
+</body>
+</html>

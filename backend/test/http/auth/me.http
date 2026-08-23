@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+
+### Get current user - success
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{access_token}}
+
+### Get current user - missing token -> 401 UNAUTHORIZED
+GET {{baseUrl}}/auth/me
+
+### Get current user - malformed token -> 401 UNAUTHORIZED
+GET {{baseUrl}}/auth/me
+Authorization: Bearer not-a-real-jwt

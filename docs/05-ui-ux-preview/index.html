@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employee Management UI/UX Preview</title>
+  <style>
+    :root {
+      --primary-50: #ecfdf3;
+      --primary-100: #d1fadf;
+      --primary-500: #12b76a;
+      --primary-600: #039855;
+      --primary-700: #027a48;
+      --neutral-50: #f8faf9;
+      --neutral-100: #eef2f0;
+      --neutral-200: #d9e2dd;
+      --neutral-500: #667085;
+      --neutral-700: #344054;
+      --neutral-900: #101828;
+      --info-500: #2e90fa;
+      --warning-500: #f79009;
+      --danger-600: #d92d20;
+      --surface: #ffffff;
+      --shadow: 0 18px 50px rgba(16, 24, 40, .12);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--neutral-50);
+      color: var(--neutral-700);
+      letter-spacing: 0;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .65; }
+
+    .shell { min-height: 100vh; display: grid; grid-template-rows: 64px 1fr; }
+    .navbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--neutral-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 760; color: var(--neutral-900); }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--primary-500);
+      color: white;
+      font-weight: 800;
+    }
+    .navbar-title { font-size: 18px; font-weight: 720; color: var(--neutral-900); }
+    .user-menu { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--primary-100);
+      color: var(--primary-700);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+    .body { display: grid; grid-template-columns: 248px 1fr; min-height: 0; }
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--neutral-100);
+      padding: 20px 16px;
+    }
+    .nav-group { font-size: 12px; font-weight: 800; color: var(--neutral-500); text-transform: uppercase; margin: 8px 8px 10px; }
+    .nav-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      text-align: left;
+      color: var(--neutral-700);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .nav-item.active, .nav-item:hover { background: var(--primary-50); color: var(--primary-700); }
+    .content { padding: 24px; overflow: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .page-title { margin: 0; font-size: 24px; line-height: 1.2; color: var(--neutral-900); }
+    .page-subtitle { margin: 6px 0 0; color: var(--neutral-500); }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--neutral-100);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    }
+    .section { padding: 18px; margin-bottom: 16px; }
+    .section h3 { margin: 0 0 14px; color: var(--neutral-900); font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 700; color: var(--neutral-700); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: var(--neutral-900);
+      background: white;
+    }
+    .field input:focus, .field select:focus {
+      outline: 3px solid var(--primary-100);
+      border-color: var(--primary-500);
+    }
+    .hint { font-size: 12px; color: var(--neutral-500); margin-top: 6px; }
+    .error-text { color: var(--danger-600); font-size: 12px; margin-top: 6px; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+    .btn {
+      min-height: 40px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 9px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .btn.primary { background: var(--primary-500); color: white; }
+    .btn.primary:hover { background: var(--primary-600); }
+    .btn.secondary { background: white; border-color: var(--neutral-200); color: var(--neutral-700); }
+    .btn.danger { background: var(--danger-600); color: white; }
+    .btn.ghost { background: transparent; color: var(--primary-700); }
+    .btn.icon { width: 38px; padding: 0; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 12px;
+      font-weight: 760;
+      background: var(--primary-50);
+      color: var(--primary-700);
+    }
+    .badge.warning { background: #fff7e6; color: #b54708; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
+    th, td { border-bottom: 1px solid var(--neutral-100); padding: 13px 14px; text-align: left; }
+    th { font-size: 12px; color: var(--neutral-500); text-transform: uppercase; background: #fbfdfc; }
+    td { color: var(--neutral-700); }
+    .row-actions { display: flex; gap: 6px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .info { padding: 12px; border: 1px solid var(--neutral-100); border-radius: 8px; background: #fff; }
+    .info span { display: block; font-size: 12px; color: var(--neutral-500); margin-bottom: 5px; }
+    .info strong { color: var(--neutral-900); }
+    .auth-wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(18, 183, 106, .14), transparent 34%),
+        var(--neutral-50);
+    }
+    .auth-card { width: min(420px, 100%); padding: 28px; }
+    .auth-card .brand { justify-content: center; margin-bottom: 22px; }
+    .auth-card h1 { text-align: center; margin: 0; color: var(--neutral-900); font-size: 24px; }
+    .auth-card p { text-align: center; color: var(--neutral-500); margin: 8px 0 22px; }
+    .auth-card .btn { width: 100%; margin-top: 14px; }
+    .link-row { text-align: center; margin-top: 14px; }
+    .toast {
+      position: fixed;
+      top: 78px;
+      right: 22px;
+      background: var(--primary-600);
+      color: white;
+      padding: 12px 14px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 50;
+    }
+    .toast.show { display: block; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 24, 40, .52);
+      display: none;
+      place-items: center;
+      padding: 18px;
+      z-index: 40;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      width: min(560px, 100%);
+      background: white;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .modal-head { padding: 18px 18px 10px; display: flex; gap: 12px; align-items: flex-start; }
+    .modal-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--primary-50);
+      color: var(--primary-700);
+      font-weight: 900;
+    }
+    .modal-icon.danger { background: #fef3f2; color: var(--danger-600); }
+    .modal h2 { margin: 0; font-size: 18px; color: var(--neutral-900); }
+    .modal p { margin: 5px 0 0; color: var(--neutral-500); }
+    .modal-body { padding: 8px 18px 18px; }
+    .summary { border: 1px solid var(--neutral-100); border-radius: 8px; overflow: hidden; }
+    .summary-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--neutral-100); }
+    .summary-row:last-child { border-bottom: 0; }
+    .summary-row span { color: var(--neutral-500); }
+    .summary-row strong { color: var(--neutral-900); }
+    .modal-foot { padding: 14px 18px 18px; display: flex; justify-content: flex-end; gap: 10px; }
+    .auth-screen { display: none; }
+    .auth-screen.active { display: grid; }
+    .app-screen { display: none; }
+    .app-screen.active { display: grid; }
+
+    @media (max-width: 900px) {
+      .body { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .content { padding: 16px; }
+      .grid, .detail-grid { grid-template-columns: 1fr; }
+      .toolbar, .page-header { align-items: stretch; flex-direction: column; }
+      .actions, .modal-foot { flex-direction: column-reverse; }
+      .actions .btn, .modal-foot .btn { width: 100%; }
+      .navbar { padding: 0 14px; }
+      .navbar .brand span, .user-menu span { display: none; }
+      .summary-row { grid-template-columns: 1fr; gap: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast" role="status">Saved successfully.</div>
+
+  <main id="authScreens" class="auth-screen active">
+    <section id="login" class="auth-wrap">
+      <form class="auth-card card" onsubmit="event.preventDefault(); showApp('employees')">
+        <div class="brand"><div class="brand-mark">E</div><span>EmployeeOS</span></div>
+        <h1>Login</h1>
+        <p>Sign in to manage employee information.</p>
+        <div class="field"><label>Email</label><input type="email" value="admin@example.com"></div>
+        <div class="field" style="margin-top:12px"><label>Password</label><input type="password" value="password"></div>
+        <button class="btn primary" type="submit">Login</button>
+        <div class="link-row"><button type="button" class="btn ghost" onclick="showAuth('forgot')">Forgot Password</button></div>
+      </form>
+    </section>
+
+    <section id="forgot" class="auth-wrap" style="display:none">
+      <form class="auth-card card" onsubmit="event.preventDefault(); toast('If the email is registered, password reset instructions will be sent.')">
+        <div class="brand"><div class="brand-mark">E</div><span>EmployeeOS</span></div>
+        <h1>Forgot Password</h1>
+        <p>Enter your email and we will send reset instructions if the account exists.</p>
+        <div class="field"><label>Email</label><input type="email" value="admin@example.com"></div>
+        <button class="btn primary" type="submit">Send Instructions</button>
+        <div class="link-row"><button type="button" class="btn ghost" onclick="showAuth('login')">Back to Login</button></div>
+      </form>
+    </section>
+  </main>
+
+  <main id="appScreens" class="app-screen shell">
+    <nav class="navbar">
+      <div class="brand"><div class="brand-mark">E</div><span>EmployeeOS</span></div>
+      <div id="navTitle" class="navbar-title">Employees</div>
+      <div class="user-menu">
+        <button class="btn secondary" onclick="showPage('changePassword')">Change Password</button>
+        <div class="avatar">AD</div><span>Admin User</span>
+      </div>
+    </nav>
+    <div class="body">
+      <aside class="sidebar">
+        <div class="nav-group">Employee</div>
+        <button class="nav-item active" data-nav="employees" onclick="showPage('employees')">☷ Employee List</button>
+        <button class="nav-item" data-nav="create" onclick="showPage('create')">＋ Create Employee</button>
+      </aside>
+      <section class="content">
+        <div id="employees" class="page active">
+          <header class="page-header">
+            <div><h1 class="page-title">Employees</h1><p class="page-subtitle">Search, review, and manage employee records.</p></div>
+            <button class="btn primary" onclick="showPage('create')">＋ Create Employee</button>
+          </header>
+          <div class="toolbar">
+            <div class="filters">
+              <div class="field"><input placeholder="Search employees" value="Mai"></div>
+              <div class="field"><select disabled><option>Department blocked</option></select></div>
+              <div class="field"><select><option>Status pending</option></select></div>
+            </div>
+          </div>
+          <div class="card table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Full Name</th><th>Email</th><th>Phone</th><th>Department</th><th>Position</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td>EMP-001</td><td>Mai Nguyen</td><td>mai@example.com</td><td>090 123 4567</td><td>Pending</td><td>HR Lead</td><td><span class="badge">Active</span></td><td class="row-actions"><button class="btn icon secondary" onclick="showPage('detail')">👁</button><button class="btn icon secondary" onclick="showPage('edit')">✎</button><button class="btn icon secondary" onclick="openModal('delete')">⌫</button></td></tr>
+                <tr><td>EMP-002</td><td>An Tran</td><td>an@example.com</td><td>090 555 2211</td><td>Pending</td><td>Engineer</td><td><span class="badge warning">Draft</span></td><td class="row-actions"><button class="btn icon secondary" onclick="showPage('detail')">👁</button><button class="btn icon secondary" onclick="showPage('edit')">✎</button><button class="btn icon secondary" onclick="openModal('delete')">⌫</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="create" class="page">
+          <header class="page-header"><div><h1 class="page-title">Create Employee</h1><p class="page-subtitle">Create after client validation and confirmation.</p></div></header>
+          <div class="card section"><h3>Basic Information</h3><div class="grid"><div class="field"><label>Employee code</label><input value="EMP-003"></div><div class="field"><label>Status</label><select><option>Pending approval</option></select></div><div class="field"><label>First name</label><input value="Lan"></div><div class="field"><label>Last name</label><input value="Pham"></div></div></div>
+          <div class="card section"><h3>Contact Information</h3><div class="grid"><div class="field"><label>Email</label><input value="lan@example.com"></div><div class="field"><label>Phone</label><input value="090 777 8888"></div></div></div>
+          <div class="card section"><h3>Organization Information</h3><div class="grid"><div class="field"><label>Department</label><select disabled><option>Blocked until Department spec approved</option></select><div class="hint">Department data source is pending.</div></div><div class="field"><label>Position</label><input value="Recruiter"></div></div></div>
+          <div class="actions"><button class="btn secondary" onclick="showPage('employees')">Cancel</button><button class="btn primary" onclick="openModal('create')">Save</button></div>
+        </div>
+
+        <div id="edit" class="page">
+          <header class="page-header"><div><h1 class="page-title">Edit Employee</h1><p class="page-subtitle">Review changed fields before updating.</p></div></header>
+          <div class="card section"><h3>Basic Information</h3><div class="grid"><div class="field"><label>Employee code</label><input value="EMP-001"></div><div class="field"><label>Status</label><select><option>Active</option></select></div><div class="field"><label>First name</label><input value="Mai"></div><div class="field"><label>Last name</label><input value="Nguyen"></div></div></div>
+          <div class="card section"><h3>Contact Information</h3><div class="grid"><div class="field"><label>Email</label><input value="mai.updated@example.com"></div><div class="field"><label>Phone</label><input value="090 123 4567"></div></div></div>
+          <div class="actions"><button class="btn secondary" onclick="showPage('detail')">Cancel</button><button class="btn primary" onclick="openModal('update')">Save Changes</button></div>
+        </div>
+
+        <div id="detail" class="page">
+          <header class="page-header"><div><h1 class="page-title">Employee Detail</h1><p class="page-subtitle">Read-only employee information grouped by section.</p></div><div class="actions" style="margin:0"><button class="btn secondary" onclick="showPage('edit')">Edit</button><button class="btn danger" onclick="openModal('delete')">Delete</button></div></header>
+          <div class="card section"><h3>Employee Information</h3><div class="detail-grid"><div class="info"><span>Employee code</span><strong>EMP-001</strong></div><div class="info"><span>Full name</span><strong>Mai Nguyen</strong></div><div class="info"><span>Status</span><strong>Active</strong></div><div class="info"><span>Email</span><strong>mai@example.com</strong></div><div class="info"><span>Department</span><strong>Pending</strong></div><div class="info"><span>Position</span><strong>HR Lead</strong></div></div></div>
+        </div>
+
+        <div id="changePassword" class="page">
+          <header class="page-header"><div><h1 class="page-title">Change Password</h1><p class="page-subtitle">Update your password from inside the authenticated app.</p></div></header>
+          <form class="card section" onsubmit="event.preventDefault(); toast('Password changed successfully.')">
+            <div class="grid">
+              <div class="field"><label>Current password</label><input type="password" value="current"></div>
+              <div class="field"><label>New password</label><input type="password" value="new-password"></div>
+              <div class="field"><label>Confirm new password</label><input type="password" value="new-password"><div class="hint">Must match the new password.</div></div>
+            </div>
+            <div class="actions"><button class="btn secondary" type="button" onclick="showPage('employees')">Cancel</button><button class="btn primary" type="submit">Change Password</button></div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-head">
+        <div id="modalIcon" class="modal-icon">✓</div>
+        <div><h2 id="modalTitle">Confirm</h2><p id="modalMessage">Please review before continuing.</p></div>
+      </div>
+      <div class="modal-body"><div id="modalSummary" class="summary"></div></div>
+      <div class="modal-foot">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button id="modalConfirm" class="btn primary" onclick="confirmModal()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const titles = {
+      employees: 'Employees',
+      create: 'Create Employee',
+      edit: 'Edit Employee',
+      detail: 'Employee Detail',
+      changePassword: 'Change Password'
+    };
+    let modalType = 'create';
+
+    function showAuth(name) {
+      document.getElementById('login').style.display = name === 'login' ? 'grid' : 'none';
+      document.getElementById('forgot').style.display = name === 'forgot' ? 'grid' : 'none';
+    }
+    function showApp(page) {
+      document.getElementById('authScreens').classList.remove('active');
+      document.getElementById('appScreens').classList.add('active');
+      showPage(page);
+    }
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById('navTitle').textContent = titles[id] || 'Employees';
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const active = id === 'create' ? 'create' : 'employees';
+      const nav = document.querySelector('[data-nav="' + active + '"]');
+      if (nav) nav.classList.add('active');
+    }
+    function rows(items) {
+      return items.map(([a, b]) => '<div class="summary-row"><span>' + a + '</span><strong>' + b + '</strong></div>').join('');
+    }
+    function openModal(type) {
+      modalType = type;
+      const icon = document.getElementById('modalIcon');
+      const confirm = document.getElementById('modalConfirm');
+      icon.className = 'modal-icon';
+      confirm.className = 'btn primary';
+      if (type === 'create') {
+        modalTitle.textContent = 'Confirm Create Employee';
+        modalMessage.textContent = 'Please review the employee information before creating this employee.';
+        modalSummary.innerHTML = rows([['Employee code', 'EMP-003'], ['Full name', 'Lan Pham'], ['Email', 'lan@example.com'], ['Department', 'Blocked'], ['Position', 'Recruiter']]);
+        confirm.textContent = 'Confirm submit';
+      }
+      if (type === 'update') {
+        modalTitle.textContent = 'Confirm Update Employee';
+        modalMessage.textContent = 'Please review the changes before updating this employee.';
+        modalSummary.innerHTML = rows([['Email', 'mai@example.com → mai.updated@example.com'], ['Position', 'HR Lead → People Lead']]);
+        confirm.textContent = 'Confirm update';
+      }
+      if (type === 'delete') {
+        icon.className = 'modal-icon danger';
+        confirm.className = 'btn danger';
+        modalTitle.textContent = 'Confirm Delete Employee';
+        modalMessage.textContent = 'This action may remove the employee from the system. Please review before continuing.';
+        modalSummary.innerHTML = rows([['Employee code', 'EMP-001'], ['Full name', 'Mai Nguyen'], ['Email', 'mai@example.com'], ['Position', 'HR Lead']]);
+        confirm.textContent = 'Confirm delete';
+      }
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.remove('open');
+    }
+    function confirmModal() {
+      closeModal();
+      if (modalType === 'delete') {
+        toast('Employee deleted successfully.');
+        showPage('employees');
+      } else if (modalType === 'update') {
+        toast('Employee updated successfully.');
+        showPage('detail');
+      } else {
+        toast('Employee created successfully.');
+        showPage('employees');
+      }
+    }
+    function toast(message) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2600);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bao cao UI/UX</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>Bao cao thiet ke</small></div></div>
+    <nav>
+      <a href="index.html">Tong quan</a><a href="business.html">Nghiep vu</a><a href="architecture.html">Kien truc</a><a href="database.html">Du lieu</a><a href="api.html">API</a><a class="active" href="uiux.html">UI/UX</a><a href="modules.html">Module UI</a><a href="login.html">Login</a><a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><p class="eyebrow">UI/UX Direction</p><h1>Dinh huong giao dien noi bo</h1></div>
+      <div class="status-pill purple">Purple Tailwind</div>
+    </header>
+
+    <section class="panel purple-panel">
+      <div class="section-title"><h3>Dashboard mau theo tinh than Tailwind</h3><a href="modules.html">Xem module UI</a></div>
+      <div class="mock-window purple-mock">
+        <div class="mock-sidebar purple-nav">
+          <span class="logo-dot"></span>
+          <b>HR Internal</b>
+          <em>Dashboard</em><em>Nhan vien</em><em>Phong ban</em><em>Vai tro</em><em>Nguoi dung</em>
+        </div>
+        <div class="mock-content">
+          <div class="mock-head"><strong>Trung tam nhan su</strong><button>+ Them nhan vien</button></div>
+          <div class="mock-stats"><span>248 nhan vien</span><span>12 phong ban</span><span>18 dang thu viec</span></div>
+          <div class="mock-table">
+            <div><b>Ma</b><b>Ho ten</b><b>Phong ban</b><b>Trang thai</b></div>
+            <div><span>EMP-001</span><span>Nguyen Minh Anh</span><span>Nhan su</span><mark>ACTIVE</mark></div>
+            <div><span>EMP-014</span><span>Tran Quoc Huy</span><span>Ky thuat</span><mark>PROBATION</mark></div>
+            <div><span>EMP-027</span><span>Le Hoang Linh</span><span>Tai chinh</span><mark>ON_LEAVE</mark></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h3>Nguyen tac UX</h3>
+        <ul class="check-list">
+          <li>Giao dien sang, hien dai, dung mau tim lam nhan dien chinh.</li>
+          <li>Danh sach de loc, de tim, de scan cho cong viec HR hang ngay.</li>
+          <li>Form nhap lieu ro rang, co validation va trang thai loi.</li>
+          <li>Action nguy hiem can xac nhan.</li>
+          <li>An hoac khoa chuc nang khi user thieu quyen.</li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h3>Man hinh can co</h3>
+        <ul class="tag-list">
+          <li>Dang nhap</li><li>Dashboard</li><li>Danh sach nhan vien</li><li>Chi tiet nhan vien</li><li>Phong ban</li><li>Nguoi dung</li><li>Vai tro</li><li>Quyen han</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3>Form nhan vien mau</h3>
+      <div class="form-preview">
+        <label>Ma nhan vien<input value="EMP-001" readonly></label>
+        <label>Ho va ten<input value="Nguyen Minh Anh" readonly></label>
+        <label>Email<input value="minhanh@company.local" readonly></label>
+        <label>Phong ban<select disabled><option>Nhan su</option></select></label>
+        <label>Trang thai<select disabled><option>ACTIVE</option></select></label>
+        <label>Chuc danh<input value="HR Specialist" readonly></label>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

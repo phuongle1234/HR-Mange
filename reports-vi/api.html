@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Báo cáo API</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>Báo cáo thiết kế</small></div></div>
+    <nav>
+      <a href="index.html">Tổng quan</a><a href="business.html">Nghiệp vụ</a><a href="architecture.html">Kiến trúc</a><a href="database.html">Dữ liệu</a><a class="active" href="api.html">API</a><a href="uiux.html">UI/UX</a><a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">API Design</p><h1>Danh mục API đề xuất</h1></div><div class="status-pill">RESTful</div></header>
+
+    <section class="api-grid">
+      <article class="api-card"><h3>Auth</h3><code>POST /auth/login</code><code>POST /auth/logout</code><code>POST /auth/refresh</code><code>GET /auth/me</code></article>
+      <article class="api-card"><h3>Users</h3><code>GET /users</code><code>POST /users</code><code>PATCH /users/:id</code><code>PUT /users/:id/roles</code></article>
+      <article class="api-card"><h3>Employees</h3><code>GET /employees</code><code>POST /employees</code><code>PATCH /employees/:id</code><code>PATCH /employees/:id/status</code></article>
+      <article class="api-card"><h3>Departments</h3><code>GET /departments</code><code>POST /departments</code><code>PATCH /departments/:id</code><code>DELETE /departments/:id</code></article>
+      <article class="api-card"><h3>Roles</h3><code>GET /roles</code><code>POST /roles</code><code>PUT /roles/:id/permissions</code><code>DELETE /roles/:id</code></article>
+      <article class="api-card"><h3>Permissions</h3><code>GET /permissions</code></article>
+    </section>
+
+    <section class="panel">
+      <h3>Quy tắc API</h3>
+      <ul class="check-list">
+        <li>API nội bộ phải yêu cầu authentication, trừ endpoint public được ghi rõ.</li>
+        <li>Backend phải enforce authorization, frontend chỉ hỗ trợ ẩn/disable action.</li>
+        <li>Input phải validate qua DTO.</li>
+        <li>Không trả về sensitive field như passwordHash hoặc token secret.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

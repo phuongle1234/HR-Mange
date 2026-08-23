@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roadmap triển khai</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>Báo cáo thiết kế</small></div></div>
+    <nav>
+      <a href="index.html">Tổng quan</a><a href="business.html">Nghiệp vụ</a><a href="architecture.html">Kiến trúc</a><a href="database.html">Dữ liệu</a><a href="api.html">API</a><a href="uiux.html">UI/UX</a><a class="active" href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">Implementation Roadmap</p><h1>Lộ trình triển khai</h1></div><div class="status-pill">Backlog ban đầu</div></header>
+
+    <section class="roadmap">
+      <article><span>01</span><h3>Khởi tạo nền tảng</h3><p>Project structure, backend, frontend, docker, env example.</p></article>
+      <article><span>02</span><h3>Database</h3><p>Prisma schema cho User, Employee, Department, Role, Permission.</p></article>
+      <article><span>03</span><h3>Auth & Authorization</h3><p>Login, JWT, refresh token, role-permission guard.</p></article>
+      <article><span>04</span><h3>Core HR modules</h3><p>User, employee, department, role, permission APIs.</p></article>
+      <article><span>05</span><h3>Frontend nội bộ</h3><p>Login, dashboard, danh sách nhân viên, chi tiết nhân viên, quản trị quyền.</p></article>
+      <article><span>06</span><h3>Hoàn thiện kiểm thử</h3><p>Unit test, test report, implementation report theo từng task.</p></article>
+    </section>
+
+    <section class="panel">
+      <h3>Task khởi đầu</h3>
+      <ul class="check-list">
+        <li>PROJECT-001 - Initialize project structure.</li>
+        <li>DB-001 - Design initial Prisma schema.</li>
+        <li>AUTH-001 - Implement login and JWT authentication.</li>
+        <li>AUTHZ-001 - Implement role and permission authorization.</li>
+        <li>EMP-001 - Implement employee management APIs.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+
+### List employees - default pagination
+GET {{baseUrl}}/employees
+Authorization: Bearer {{access_token}}
+
+### List employees - explicit pagination
+GET {{baseUrl}}/employees?page=1&limit=5
+Authorization: Bearer {{access_token}}
+
+### List employees - search by name/code/email
+GET {{baseUrl}}/employees?search=grace
+Authorization: Bearer {{access_token}}
+
+### List employees - filter by status
+GET {{baseUrl}}/employees?status=ACTIVE
+Authorization: Bearer {{access_token}}
+
+### List employees - sort by employeeCode ascending
+GET {{baseUrl}}/employees?sortBy=employeeCode&sortOrder=asc
+Authorization: Bearer {{access_token}}
+
+### List employees - invalid sortBy -> 400 VALIDATION_ERROR
+GET {{baseUrl}}/employees?sortBy=departmentId
+Authorization: Bearer {{access_token}}
+
+### List employees - missing token -> 401 UNAUTHORIZED
+GET {{baseUrl}}/employees

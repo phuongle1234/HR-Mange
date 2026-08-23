@@ -1,0 +1,9 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+
+### Logout - success (stateless no-op, exists for API-contract symmetry only)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{access_token}}
+
+### Logout - missing token -> 401 UNAUTHORIZED
+POST {{baseUrl}}/auth/logout

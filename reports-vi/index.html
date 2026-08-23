@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Báo cáo dự án Quản lý nhân sự nội bộ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">HR</span>
+      <div>
+        <strong>HR Internal</strong>
+        <small>Báo cáo thiết kế</small>
+      </div>
+    </div>
+    <nav>
+      <a class="active" href="index.html">Tổng quan</a>
+      <a href="business.html">Nghiệp vụ</a>
+      <a href="architecture.html">Kiến trúc</a>
+      <a href="database.html">Dữ liệu</a>
+      <a href="api.html">API</a>
+      <a href="uiux.html">UI/UX</a>
+      <a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Employee Management System</p>
+        <h1>Báo cáo tổng hợp thiết kế dự án</h1>
+      </div>
+      <div class="status-pill">Nội bộ công ty - Không SaaS</div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h2>Hệ thống quản lý nhân sự dành riêng cho vận hành nội bộ</h2>
+        <p>
+          Báo cáo này tổng hợp toàn bộ business spec, solution spec, architecture, database,
+          API và định hướng UI/UX thành một bộ tài liệu HTML trực quan để dễ xem, dễ duyệt
+          và dễ giao tiếp giữa đội kỹ thuật, HR và quản trị hệ thống.
+        </p>
+      </div>
+      <div class="hero-panel">
+        <span>Phạm vi</span>
+        <strong>Một công ty</strong>
+        <p>Không tenant, không billing, không subscription, không marketplace.</p>
+      </div>
+    </section>
+
+    <section class="metrics">
+      <article>
+        <strong>7</strong>
+        <span>Nhóm tài liệu chính</span>
+      </article>
+      <article>
+        <strong>8</strong>
+        <span>Module nghiệp vụ</span>
+      </article>
+      <article>
+        <strong>7</strong>
+        <span>Nhóm API đề xuất</span>
+      </article>
+      <article>
+        <strong>1</strong>
+        <span>Công ty nội bộ</span>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h3>Mục tiêu dự án</h3>
+        <ul class="check-list">
+          <li>Quản lý hồ sơ nhân viên tập trung.</li>
+          <li>Quản lý phòng ban và trạng thái nhân sự.</li>
+          <li>Quản lý tài khoản người dùng nội bộ.</li>
+          <li>Phân quyền bằng vai trò và quyền hạn.</li>
+          <li>Đảm bảo backend, frontend và database nhất quán.</li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h3>Ngoài phạm vi</h3>
+        <ul class="x-list">
+          <li>Không multi-tenant.</li>
+          <li>Không gói dịch vụ hoặc thanh toán.</li>
+          <li>Không đăng ký tài khoản công khai.</li>
+          <li>Không portal khách hàng.</li>
+          <li>Không payroll, chấm công, tuyển dụng nếu chưa được duyệt.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <h3>Module chính</h3>
+        <a href="business.html">Xem nghiệp vụ</a>
+      </div>
+      <div class="module-strip">
+        <span>Auth</span>
+        <span>User</span>
+        <span>Employee</span>
+        <span>Department</span>
+        <span>Role</span>
+        <span>Permission</span>
+        <span>Status</span>
+        <span>Logging</span>
+      </div>
+    </section>
+
+    <section class="grid three">
+      <a class="nav-card" href="business.html">
+        <strong>Nghiệp vụ</strong>
+        <span>Actor, rule, use case, workflow.</span>
+      </a>
+      <a class="nav-card" href="architecture.html">
+        <strong>Kiến trúc</strong>
+        <span>NestJS, React, Repository Pattern.</span>
+      </a>
+      <a class="nav-card" href="uiux.html">
+        <strong>UI/UX</strong>
+        <span>Dashboard, nhân viên, vai trò, form.</span>
+      </a>
+    </section>
+  </main>
+</body>
+</html>

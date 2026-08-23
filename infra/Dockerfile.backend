@@ -1,0 +1,14 @@
+# Development image for the NestJS backend.
+# Source is bind-mounted at runtime (see infra/docker-compose.yml); this build
+# only installs dependencies so the watcher/debugger can start immediately.
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+EXPOSE 3000
+EXPOSE 9229
+
+CMD ["npx", "nest", "start", "--debug=0.0.0.0:9229", "--watch"]

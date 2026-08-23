@@ -1,0 +1,18 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+@employee_id = REPLACE_WITH_EMPLOYEE_ID
+
+### Delete employee - success (hard delete - row is permanently removed)
+DELETE {{baseUrl}}/employees/{{employee_id}}
+Authorization: Bearer {{access_token}}
+
+### Delete employee - already deleted / unknown id -> 404 EMPLOYEE_NOT_FOUND
+DELETE {{baseUrl}}/employees/{{employee_id}}
+Authorization: Bearer {{access_token}}
+
+### Delete employee - invalid UUID -> 400 VALIDATION_ERROR
+DELETE {{baseUrl}}/employees/not-a-uuid
+Authorization: Bearer {{access_token}}
+
+### Delete employee - missing token -> 401 UNAUTHORIZED
+DELETE {{baseUrl}}/employees/{{employee_id}}

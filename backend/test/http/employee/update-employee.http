@@ -1,0 +1,48 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+@employee_id = REPLACE_WITH_EMPLOYEE_ID
+
+### Update employee - success (partial update)
+PUT {{baseUrl}}/employees/{{employee_id}}
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "position": "Senior Rear Admiral",
+  "status": "ON_LEAVE"
+}
+
+### Update employee - not found -> 404 EMPLOYEE_NOT_FOUND
+PUT {{baseUrl}}/employees/00000000-0000-4000-8000-000000000000
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "position": "Ghost"
+}
+
+### Update employee - employeeCode taken by another row -> 409 EMPLOYEE_CODE_EXISTS
+PUT {{baseUrl}}/employees/{{employee_id}}
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "employeeCode": "EMP-101"
+}
+
+### Update employee - validation error (status not in enum) -> 400 VALIDATION_ERROR
+PUT {{baseUrl}}/employees/{{employee_id}}
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "status": "RETIRED"
+}
+
+### Update employee - missing token -> 401 UNAUTHORIZED
+PUT {{baseUrl}}/employees/{{employee_id}}
+Content-Type: application/json
+
+{
+  "position": "No Auth"
+}

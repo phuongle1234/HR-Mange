@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Báo cáo kiến trúc</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>Báo cáo thiết kế</small></div></div>
+    <nav>
+      <a href="index.html">Tổng quan</a><a href="business.html">Nghiệp vụ</a><a class="active" href="architecture.html">Kiến trúc</a><a href="database.html">Dữ liệu</a><a href="api.html">API</a><a href="uiux.html">UI/UX</a><a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">Architecture Specification</p><h1>Kiến trúc kỹ thuật</h1></div><div class="status-pill">Modular</div></header>
+
+    <section class="grid two">
+      <article class="panel">
+        <h3>Backend</h3>
+        <div class="flow">
+          <span>Controller</span><i></i><span>Service</span><i></i><span>Repository Interface</span><i></i><span>Repository Implementation</span><i></i><span>Prisma</span><i></i><span>PostgreSQL</span>
+        </div>
+        <p class="muted">Controller chỉ xử lý request/response. Business logic đặt trong Service. Database query đặt trong Repository.</p>
+      </article>
+      <article class="panel">
+        <h3>Frontend</h3>
+        <div class="flow">
+          <span>Page</span><i></i><span>Hook</span><i></i><span>TanStack Query</span><i></i><span>Module Service</span><i></i><span>Axios Base Service</span><i></i><span>Backend API</span>
+        </div>
+        <p class="muted">Redux dùng cho client state. TanStack Query dùng cho server state. Component không gọi API trực tiếp.</p>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3>Cấu trúc module đề xuất</h3>
+      <pre class="code-block">apps/backend/src/modules/employee/
+  controllers/
+  dto/
+  interfaces/
+  repositories/
+  services/
+  employee.module.ts
+
+apps/frontend/src/modules/employee/
+  components/
+  hooks/
+  services/
+  types/
+  pages/</pre>
+    </section>
+
+    <section class="grid three">
+      <article class="panel compact"><h3>BaseService</h3><p>Chỉ chứa hành vi CRUD thật sự dùng chung, không chứa logic riêng của employee/user/role.</p></article>
+      <article class="panel compact"><h3>Repository Pattern</h3><p>Service phụ thuộc interface, implementation mới gọi PrismaService.</p></article>
+      <article class="panel compact"><h3>Dependency Rule</h3><p>Không thêm package mới nếu kiến trúc hiện có đã giải quyết được.</p></article>
+    </section>
+  </main>
+</body>
+</html>

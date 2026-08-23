@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Employee Detail - EmployeeOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { brand: { 50: '#ecfdf3', 500: '#12b76a', 600: '#039855', 700: '#027a48' } }, boxShadow: { soft: '0 18px 50px rgba(16,24,40,.10)' } } } }</script>
+</head>
+
+<body class="bg-slate-50 text-slate-700">
+    <main class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+        <aside class="hidden bg-slate-950 p-5 text-white lg:block">
+            <div class="mb-8 flex items-center gap-3">
+                <div class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 font-black">E</div>
+                <div>
+                    <div class="font-black">EmployeeOS</div>
+                    <div class="text-xs text-emerald-300">Admin Workspace</div>
+                </div>
+            </div><button onclick="toggleMenu()"
+                class="flex w-full items-center justify-between rounded-xl bg-white/10 px-3 py-3 text-sm font-black"><span>▦
+                    Employee</span><span id="chev">⌄</span></button>
+            <div id="employeeChildren" class="mt-2 space-y-1 pl-3"><a href="employee-list.html"
+                    class="flex gap-3 rounded-xl bg-brand-500 px-3 py-3 text-sm font-bold text-white"><span>☷</span>Employee
+                    List</a><a href="employee-create.html"
+                    class="flex gap-3 rounded-xl px-3 py-3 text-sm font-bold text-slate-300 hover:bg-white/10"><span>＋</span>Create
+                    Employee</a></div>
+        </aside>
+        <section>
+            <header
+                class="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white/90 px-5 backdrop-blur">
+                <div class="flex items-center gap-3"><a href="employee-list.html"
+                        class="grid h-9 w-9 place-items-center rounded-lg border text-lg font-black">‹</a>
+                    <div class="text-lg font-black text-slate-950">Employee Detail</div>
+                </div>
+                <div class="text-sm font-black text-slate-950">Admin User</div>
+            </header>
+            <div class="p-4 sm:p-6 lg:p-8">
+                <nav class="mb-3 text-xs font-bold text-slate-500" aria-label="Breadcrumb"><a href="employee-list.html"
+                        class="text-brand-700 hover:underline">Employee</a><span class="px-1 text-slate-400">/</span><a
+                        href="employee-list.html" class="text-brand-700 hover:underline">Employee List</a><span
+                        class="px-1 text-slate-400">/</span><span>Detail</span></nav>
+                <div class="mb-5 flex justify-end gap-3"><a href="employee-edit.html"
+                        class="rounded-lg border px-4 py-2 font-bold">Edit</a><button onclick="openDelete()"
+                        class="rounded-lg bg-red-600 px-4 py-2 font-black text-white">Delete</button></div>
+                <section class="rounded-2xl border bg-white p-5 shadow-sm">
+                    <h2 class="mb-4 font-black text-slate-950">Employee Information</h2>
+                    <div class="grid gap-3 md:grid-cols-3">
+                        <div class="rounded-xl border bg-slate-50 p-4"><span
+                                class="text-xs font-black uppercase text-slate-400">Employee code</span><strong
+                                class="mt-2 block">EMP-001</strong></div>
+                        <div class="rounded-xl border bg-slate-50 p-4"><span
+                                class="text-xs font-black uppercase text-slate-400">Full name</span><strong
+                                class="mt-2 block">Mai Nguyen</strong></div>
+                        <div class="rounded-xl border bg-slate-50 p-4"><span
+                                class="text-xs font-black uppercase text-slate-400">Status</span><strong
+                                class="mt-2 block">Active</strong></div>
+                        <div class="rounded-xl border bg-slate-50 p-4"><span
+                                class="text-xs font-black uppercase text-slate-400">Email</span><strong
+                                class="mt-2 block">mai@example.com</strong></div>
+                        <div class="rounded-xl border bg-slate-50 p-4"><span
+                                class="text-xs font-black uppercase text-slate-400">Department</span><strong
+                                class="mt-2 block">Pending</strong></div>
+                        <div class="rounded-xl border bg-slate-50 p-4"><span
+                                class="text-xs font-black uppercase text-slate-400">Position</span><strong
+                                class="mt-2 block">HR Lead</strong></div>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+    <div id="deleteModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/60 p-4">
+        <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-soft">
+            <h2 class="text-xl font-black">Confirm Delete Employee</h2>
+            <p class="mt-1 text-sm text-slate-500">This action may remove the employee from the system.</p>
+            <div class="mt-5 flex justify-end gap-3"><button onclick="closeDelete()"
+                    class="rounded-lg border px-4 py-2 font-bold">Cancel</button><button onclick="closeDelete()"
+                    class="rounded-lg bg-red-600 px-4 py-2 font-black text-white">Confirm delete</button></div>
+        </div>
+    </div>
+    <script>function toggleMenu() { employeeChildren.classList.toggle('hidden'); chev.textContent = employeeChildren.classList.contains('hidden') ? '›' : '⌄' } function openDelete() { deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex') } function closeDelete() { deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex') }</script>
+</body>
+
+</html>

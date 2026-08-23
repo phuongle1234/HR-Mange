@@ -1,0 +1,18 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+@employee_id = REPLACE_WITH_EMPLOYEE_ID
+
+### Get employee by id - success
+GET {{baseUrl}}/employees/{{employee_id}}
+Authorization: Bearer {{access_token}}
+
+### Get employee by id - not found -> 404 EMPLOYEE_NOT_FOUND
+GET {{baseUrl}}/employees/00000000-0000-4000-8000-000000000000
+Authorization: Bearer {{access_token}}
+
+### Get employee by id - invalid UUID -> 400 VALIDATION_ERROR
+GET {{baseUrl}}/employees/not-a-uuid
+Authorization: Bearer {{access_token}}
+
+### Get employee by id - missing token -> 401 UNAUTHORIZED
+GET {{baseUrl}}/employees/{{employee_id}}

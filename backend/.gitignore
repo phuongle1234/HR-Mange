@@ -1,0 +1,28 @@
+# compiled output
+/dist
+/node_modules
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# coverage
+/coverage
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# Prisma
+/generated/prisma
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

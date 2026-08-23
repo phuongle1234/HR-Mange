@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preview UI - Module</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>UI preview</small></div></div>
+    <nav>
+      <a href="index.html">Tong quan</a><a href="business.html">Nghiep vu</a><a href="architecture.html">Kien truc</a><a href="database.html">Du lieu</a><a href="api.html">API</a><a href="uiux.html">UI/UX</a><a class="active" href="modules.html">Module UI</a><a href="login.html">Login</a><a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><p class="eyebrow">Module Preview</p><h1>Y tuong giao dien cac module</h1></div>
+      <div class="status-pill purple">Tailwind style</div>
+    </header>
+
+    <section class="module-preview-grid">
+      <article class="module-screen">
+        <div class="screen-head"><span class="screen-icon">NV</span><div><h3>Nhan vien</h3><p>Danh sach, loc, trang thai, phong ban.</p></div></div>
+        <div class="mini-toolbar"><span>Tim theo ten, ma NV</span><button>Them</button></div>
+        <div class="mini-list"><div><b>Nguyen Minh Anh</b><em>HR - ACTIVE</em></div><div><b>Tran Quoc Huy</b><em>Engineering - PROBATION</em></div><div><b>Le Hoang Linh</b><em>Finance - ON_LEAVE</em></div></div>
+      </article>
+      <article class="module-screen">
+        <div class="screen-head"><span class="screen-icon">PB</span><div><h3>Phong ban</h3><p>Co cau noi bo, so luong nhan su.</p></div></div>
+        <div class="dept-bars"><span style="--w:82%">Engineering</span><span style="--w:58%">Human Resources</span><span style="--w:45%">Finance</span><span style="--w:38%">Operations</span></div>
+      </article>
+      <article class="module-screen">
+        <div class="screen-head"><span class="screen-icon">ND</span><div><h3>Nguoi dung</h3><p>Tai khoan, active/inactive, gan role.</p></div></div>
+        <div class="user-row"><b>Admin</b><span>System Administrator</span><mark>Active</mark></div>
+        <div class="user-row"><b>HR Manager</b><span>HR Manager</span><mark>Active</mark></div>
+        <div class="user-row"><b>Viewer</b><span>Employee Viewer</span><mark>Inactive</mark></div>
+      </article>
+      <article class="module-screen">
+        <div class="screen-head"><span class="screen-icon">RQ</span><div><h3>Role & Permission</h3><p>Kiem soat quyen truy cap theo hanh dong.</p></div></div>
+        <div class="permission-matrix">
+          <span></span><b>Read</b><b>Create</b><b>Update</b><b>Delete</b>
+          <b>Employee</b><i></i><i></i><i></i><i class="off"></i>
+          <b>Department</b><i></i><i></i><i></i><i class="off"></i>
+          <b>Role</b><i></i><i class="off"></i><i></i><i class="off"></i>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

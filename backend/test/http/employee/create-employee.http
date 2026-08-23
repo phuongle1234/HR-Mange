@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+
+### Create employee - success
+POST {{baseUrl}}/employees
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "employeeCode": "EMP-100",
+  "firstName": "Grace",
+  "lastName": "Hopper",
+  "email": "grace.hopper@example.com",
+  "phone": "+1-555-0100",
+  "position": "Rear Admiral",
+  "status": "ACTIVE"
+}
+
+### Create employee - duplicate employeeCode -> 409 EMPLOYEE_CODE_EXISTS
+POST {{baseUrl}}/employees
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "employeeCode": "EMP-100",
+  "firstName": "Someone",
+  "lastName": "Else",
+  "email": "someone.else@example.com"
+}
+
+### Create employee - duplicate email -> 409 EMPLOYEE_EMAIL_EXISTS
+POST {{baseUrl}}/employees
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "employeeCode": "EMP-101",
+  "firstName": "Someone",
+  "lastName": "Else",
+  "email": "grace.hopper@example.com"
+}
+
+### Create employee - validation error (missing required fields) -> 400 VALIDATION_ERROR
+POST {{baseUrl}}/employees
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "firstName": "No Code Or Email"
+}
+
+### Create employee - missing token -> 401 UNAUTHORIZED
+POST {{baseUrl}}/employees
+Content-Type: application/json
+
+{
+  "employeeCode": "EMP-102",
+  "firstName": "No",
+  "lastName": "Auth",
+  "email": "no.auth@example.com"
+}

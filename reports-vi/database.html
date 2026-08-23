@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Báo cáo dữ liệu</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">HR</span><div><strong>HR Internal</strong><small>Báo cáo thiết kế</small></div></div>
+    <nav>
+      <a href="index.html">Tổng quan</a><a href="business.html">Nghiệp vụ</a><a href="architecture.html">Kiến trúc</a><a class="active" href="database.html">Dữ liệu</a><a href="api.html">API</a><a href="uiux.html">UI/UX</a><a href="roadmap.html">Roadmap</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">Database Specification</p><h1>Thiết kế dữ liệu</h1></div><div class="status-pill">PostgreSQL + Prisma</div></header>
+
+    <section class="panel">
+      <h3>Entity Relationship Overview</h3>
+      <div class="erd">
+        <div class="entity">User</div>
+        <div class="link">n-n</div>
+        <div class="entity">Role</div>
+        <div class="link">n-n</div>
+        <div class="entity">Permission</div>
+        <div class="entity">Employee</div>
+        <div class="link">n-1</div>
+        <div class="entity">Department</div>
+      </div>
+      <p class="muted">User có thể liên kết với Employee. User nhận quyền qua Role. Role gom nhiều Permission. Employee thuộc một Department khi được gán.</p>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <h3>Entity chính</h3>
+        <ul class="tag-list">
+          <li>User</li><li>Employee</li><li>Department</li><li>Role</li><li>Permission</li><li>UserRole</li><li>RolePermission</li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h3>Ràng buộc quan trọng</h3>
+        <ul class="check-list">
+          <li>User.email unique.</li>
+          <li>Employee.employeeCode unique.</li>
+          <li>Department.name unique.</li>
+          <li>Role.name unique.</li>
+          <li>Permission.key unique.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3>Quy tắc migration</h3>
+      <p>Dữ liệu dùng PostgreSQL, ORM dùng Prisma. Mọi thay đổi schema phải đi qua Prisma migration và cập nhật tài liệu database nếu thay đổi ảnh hưởng behavior đã mô tả.</p>
+    </section>
+  </main>
+</body>
+</html>
