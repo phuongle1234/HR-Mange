@@ -11,6 +11,7 @@ import { EmployeeListPage } from '../features/employee/pages/EmployeeListPage';
 import { EmployeeDetailPage } from '../features/employee/pages/EmployeeDetailPage';
 import { EmployeeCreatePage } from '../features/employee/pages/EmployeeCreatePage';
 import { EmployeeEditPage } from '../features/employee/pages/EmployeeEditPage';
+import { OrganizationPage } from '../features/organization/pages/OrganizationPage';
 import { NotFoundPage } from '../shared/components/NotFoundPage';
 import type { RouteHandle } from './route.types';
 
@@ -44,6 +45,10 @@ export const router = createBrowserRouter([
         element: <ForgotPasswordPage />,
         handle: handle({ title: 'Forgot Password', authSubtitle: 'Account recovery' }),
       },
+      {
+        path: '/change-password', element: <ChangePasswordPage />,
+        handle: handle({ title: 'Change Password', navbarBackButton: true, navbarBackTarget: '/employees', sidebarActiveKey: null, }),
+      },
     ],
   },
   {
@@ -53,22 +58,11 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           {
-            path: '/change-password',
-            element: <ChangePasswordPage />,
-            handle: handle({
-              title: 'Change Password',
-              navbarBackButton: true,
-              navbarBackTarget: '/employees',
-              sidebarActiveKey: null,
-            }),
-          },
-          {
             path: '/employees',
             element: <EmployeeListPage />,
             handle: handle({
               title: 'Employees',
               sidebarActiveKey: 'employee.list',
-              showUserMenu: true,
               breadcrumb: [EMPLOYEE_BREADCRUMB_ROOT, { label: 'Employee List' }],
             }),
           },
@@ -108,6 +102,15 @@ export const router = createBrowserRouter([
                 { label: 'Detail' },
                 { label: 'Edit' },
               ],
+            }),
+          },
+          {
+            path: '/organizations',
+            element: <OrganizationPage />,
+            handle: handle({
+              title: 'Organization',
+              sidebarActiveKey: 'organization.chart',
+              breadcrumb: [{ label: '' }],
             }),
           },
         ],

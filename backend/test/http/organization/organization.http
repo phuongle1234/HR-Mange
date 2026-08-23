@@ -1,0 +1,82 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+
+### Create organizations (bulk) - success
+POST {{baseUrl}}/organizations
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "code": "ORG-CO",
+      "name": "Acme Corp",
+      "type": "COMPANY"
+    },
+    {
+      "code": "ORG-ENG",
+      "name": "Engineering",
+      "type": "DEPARTMENT",
+      "parentId": 1,
+      "sortOrder": 1
+    }
+  ]
+}
+
+### Create organizations - validation error (empty items) -> 400 VALIDATION_ERROR
+POST {{baseUrl}}/organizations
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "items": []
+}
+
+### Create organizations - missing token -> 401 UNAUTHORIZED
+POST {{baseUrl}}/organizations
+Content-Type: application/json
+
+{
+  "items": [
+    { "code": "ORG-X", "name": "No Auth" }
+  ]
+}
+
+### Get organizations - no filter
+GET {{baseUrl}}/organizations
+Authorization: Bearer {{access_token}}
+
+### Get organizations - filter by type
+GET {{baseUrl}}/organizations?type=DEPARTMENT
+Authorization: Bearer {{access_token}}
+
+### Get organizations - filter by parentId and isActive
+GET {{baseUrl}}/organizations?parentId=1&isActive=true
+Authorization: Bearer {{access_token}}
+
+### Update organizations (bulk) - set isActive=false for all DEPARTMENT under parent 1
+PATCH {{baseUrl}}/organizations
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "where": {
+    "parentId": 1,
+    "type": "DEPARTMENT"
+  },
+  "data": {
+    "isActive": false
+  }
+}
+
+### Delete organizations (bulk) - remove all inactive TEAM orgs
+DELETE {{baseUrl}}/organizations
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "where": {
+    "type": "TEAM",
+    "isActive": false
+  }
+}

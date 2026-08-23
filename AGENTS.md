@@ -91,6 +91,8 @@ Database design must be specified before Prisma schema and migration. Do not add
 ## Frontend Rules
 React uses React Router, Redux Toolkit, TanStack Query, and Axios. Redux is for global client state, TanStack Query is for server state, and local React state is for UI state. API URLs must be declared centrally, not inside components.
 
+JSX elements: write every element's attributes on one line (`<button className="..." aria-haspopup="menu" aria-expanded={isOpen} type="button" onClick={...} >`), not one attribute per line, regardless of how many props it takes. This applies to every element/component, not just `<button>` — plain HTML tags and custom components alike. Let the line wrap naturally/stay long rather than breaking each prop onto its own line.
+
 ## Testing Rules
 Do not create unit test (UT) files (e.g. under `backend/test`, `frontend/src/test`) and do not run tests as part of a normal coding request, even if the task would otherwise call for it. Only write UT files and/or run tests when the user explicitly asks to write UT or run UT in that request. Do not claim tests passed unless they were executed.
 

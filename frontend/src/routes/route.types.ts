@@ -12,7 +12,7 @@ export interface RouteHandle {
   title: string;
   navbarBackButton?: boolean;
   navbarBackTarget?: string;
-  sidebarActiveKey?: 'employee.list' | 'employee.create' | null;
+  sidebarActiveKey?: 'employee.list' | 'employee.create' | 'organization.chart' | null;
   breadcrumb?: BreadcrumbItem[];
   /** Only the Employee List navbar shows the full user avatar + dropdown menu. */
   showUserMenu?: boolean;

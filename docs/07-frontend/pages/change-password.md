@@ -28,7 +28,7 @@ src/features/auth/pages/ChangePasswordPage.tsx
 
 ## Responsibilities
 - Render form from `UI-AUTH-CHANGE-PASSWORD`.
-- Require authenticated route guard.
+- **Not gated by `AuthGuard`** (see `docs/07-frontend/react-route.md`'s Change Password Route) — the route renders inside `AuthLayout`, the same public shell as `/login`. This diverges from the route's original design (previously `AuthGuard`-protected, rendered in `AppLayout`); the page itself still calls `useAuth()`/the change-password mutation the same way, which will simply fail its own way (e.g. `UNAUTHORIZED`) if no session exists.
 - Validate current password, new password, and confirm password with React Hook Form and Zod.
 - Call change password mutation.
 - Show success toast after mutation succeeds.

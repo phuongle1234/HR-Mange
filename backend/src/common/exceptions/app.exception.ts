@@ -73,3 +73,9 @@ export class EmployeeNotFoundException extends AppException {
   }
 }
 
+export class OrganizationNotFoundException extends AppException {
+  constructor(id: string) {
+    super(ErrorCode.ORGANIZATION_NOT_FOUND, `Organization with id "${id}" was not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+

@@ -68,12 +68,15 @@ There is no `permission` metadata key.
 | --- | --- | --- | --- | --- | --- |
 | `/login` | `LoginPage` | `AuthLayout` | no | `Login` | none |
 | `/forgot-password` | `ForgotPasswordPage` | `AuthLayout` | no | `Forgot Password` | none |
-| `/change-password` | `ChangePasswordPage` | `AppLayout` | yes | `Change Password` | none |
+| `/change-password` | `ChangePasswordPage` | `AuthLayout` | **no** | `Change Password` | none |
 | `/employees` | `EmployeeListPage` | `AppLayout` | yes | `Employees` | `employee.list` |
 | `/employees/create` | `EmployeeCreatePage` | `AppLayout` | yes | `Create Employee` | `employee.create` |
 | `/employees/:id` | `EmployeeDetailPage` | `AppLayout` | yes | `Employee Detail` | `employee.list` |
 | `/employees/:id/edit` | `EmployeeEditPage` | `AppLayout` | yes | `Edit Employee` | `employee.list` |
+| `/organizations` | `OrganizationPage` | `AppLayout` | yes | `Organization` | `organization.chart` |
 | `*` | `NotFoundPage` | `NotFoundLayout` | no | `Page Not Found` | none |
+
+`/change-password` moved from `AppLayout`/`AuthGuard` to `AuthLayout` (ungated) — see "Change Password Route" below for what this means in practice.
 
 ## Login Route
 ```text
@@ -107,13 +110,12 @@ sidebarActiveKey: none
 ```text
 path: /change-password
 component: ChangePasswordPage
-layout: AppLayout
-authRequired: true
+layout: AuthLayout
+authRequired: false
 title: Change Password
-navbarBackButton: true
-navbarBackTarget: /employees
 sidebarActiveKey: none
 ```
+**Not gated by `AuthGuard`** — reachable by an unauthenticated visitor, and rendered inside `AuthLayout` (the centered public-auth shell, no Navbar/Sidebar), the same as `/login`/`/forgot-password`. `navbarBackButton`/`navbarBackTarget` set on this route's `handle` have no effect, since `AuthLayout` never renders a Navbar to read them. This is a deliberate change made directly in code, not the original design (the route previously required auth and rendered inside `AppLayout`) — `ChangePasswordPage`'s own form/mutation behavior is unaffected, only how the route is reached and what shell it renders in.
 
 ## Employee Create Route
 ```text

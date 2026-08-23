@@ -24,6 +24,14 @@ enum EmployeeStatus {
   TERMINATED
 }
 
+enum OrganizationType {
+  COMPANY
+  BRANCH
+  DIVISION
+  DEPARTMENT
+  TEAM
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique @db.VarChar(255)
@@ -61,6 +69,32 @@ model Employee {
   @@index([status])
   @@index([status, createdAt])
   @@map("employees")
+}
+
+// Deliberate exception to DB-CONVENTIONS' "no auto-increment IDs" rule -
+// see docs/04-database/entities/organization.md and
+// docs/04-database/conventions.md's Primary Keys section.
+model Organization {
+  id              Int              @id @default(autoincrement())
+  code            String           @unique @db.VarChar(50)
+  name            String           @db.VarChar(255)
+  description     String?
+
+  parentId        Int?             @map("parent_id")
+  parent          Organization?    @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Organization[]   @relation("OrganizationHierarchy")
+
+  type            OrganizationType @default(DEPARTMENT)
+  sortOrder       Int              @default(0) @map("sort_order")
+  isActive        Boolean          @default(true) @map("is_active")
+
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  createdByUserId String?          @map("created_by_user_id")
+  updatedByUserId String?          @map("updated_by_user_id")
+
+  @@index([parentId])
+  @@map("organizations")
 }
 
 model AuditLog {

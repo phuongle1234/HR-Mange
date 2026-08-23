@@ -5,9 +5,29 @@ import { Breadcrumb } from '../shared/components/Breadcrumb';
 import { cn } from '../shared/utils/cn';
 import type { RouteHandle } from '../routes/route.types';
 
-const NAV_ITEMS: Array<{ key: 'employee.list' | 'employee.create'; label: string; to: string }> = [
-  { key: 'employee.list', label: 'Employee List', to: '/employees' },
-  { key: 'employee.create', label: 'Create Employee', to: '/employees/create' },
+interface NavItem {
+  key: 'employee.list' | 'employee.create' | 'organization.chart';
+  label: string;
+  to: string;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Employee',
+    items: [
+      { key: 'employee.list', label: 'Employee List', to: '/employees' },
+      { key: 'employee.create', label: 'Create Employee', to: '/employees/create' },
+    ],
+  },
+  {
+    label: 'Organization',
+    items: [{ key: 'organization.chart', label: 'Organization Chart', to: '/organizations' }],
+  },
 ];
 
 function Sidebar({ activeKey }: { activeKey?: string | null }) {
@@ -22,21 +42,25 @@ function Sidebar({ activeKey }: { activeKey?: string | null }) {
           <p className="text-xs text-emerald-300">Admin Workspace</p>
         </div>
       </div>
-      <nav className="space-y-1">
-        <p className="px-3 pb-1 text-xs font-black uppercase text-slate-500">Employee</p>
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.key}
-            to={item.to}
-            className={cn(
-              'block rounded-lg px-3 py-2 text-sm font-bold transition-colors',
-              activeKey === item.key
-                ? 'bg-brand-500 text-white'
-                : 'text-slate-300 hover:bg-white/10',
-            )}
-          >
-            {item.label}
-          </Link>
+      <nav className="space-y-4">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="space-y-1">
+            <p className="px-3 pb-1 text-xs font-black uppercase text-slate-500">{group.label}</p>
+            {group.items.map((item) => (
+              <Link
+                key={item.key}
+                to={item.to}
+                className={cn(
+                  'block rounded-lg px-3 py-2 text-sm font-bold transition-colors',
+                  activeKey === item.key
+                    ? 'bg-brand-500 text-white'
+                    : 'text-slate-300 hover:bg-white/10',
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         ))}
       </nav>
     </aside>
@@ -56,7 +80,6 @@ function UserMenu() {
         .join('')
         .toUpperCase()
     : '?';
-
   async function handleLogout() {
     setIsOpen(false);
     await logout();
@@ -65,13 +88,7 @@ function UserMenu() {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen((value) => !value)}
-        className="flex items-center gap-2"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-      >
+      <button className="flex items-center gap-2" aria-haspopup="menu" aria-expanded={isOpen} type="button" onClick={() => setIsOpen((value) => !value)} >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-black text-brand-700">
           {initials}
         </span>
@@ -112,7 +129,6 @@ function UserMenu() {
 function Navbar({ handle }: { handle: RouteHandle }) {
   const navigate = useNavigate();
   const params = useParams();
-  const { currentUser } = useAuth();
 
   function resolveBackTarget(): string {
     let target = handle.navbarBackTarget ?? '/employees';
@@ -139,13 +155,7 @@ function Navbar({ handle }: { handle: RouteHandle }) {
         )}
         <h1 className="text-lg font-black text-slate-950">{handle.title}</h1>
       </div>
-      {handle.showUserMenu ? (
-        <UserMenu />
-      ) : (
-        <span className="text-sm font-black text-slate-950">
-          {currentUser?.fullName ?? 'Account'}
-        </span>
-      )}
+      <UserMenu />
     </header>
   );
 }

@@ -74,7 +74,7 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
 
   async create(data: CreateDataOf<TDelegate>, actorUserId?: string): Promise<EntityOf<TDelegate>> {
     const created = unsafeCoerce<EntityOf<TDelegate>>(await this.entity.create({ data }));
-    this.emit(ENTITY_CREATED_EVENT, unsafeCoerce<{ id: string }>(created).id, data, actorUserId);
+    this.emit(ENTITY_CREATED_EVENT, this.idOf(created), data, actorUserId);
     return created;
   }
 
@@ -82,7 +82,7 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
     const items = unsafeCoerce<Record<string, unknown>[]>(dataArray);
     const created = unsafeCoerce<EntityOf<TDelegate>[]>(await this.entity.createManyAndReturn({ data: items }));
     created.forEach((row, index) => {
-      this.emit(ENTITY_CREATED_EVENT, unsafeCoerce<{ id: string }>(row).id, items[index], actorUserId);
+      this.emit(ENTITY_CREATED_EVENT, this.idOf(row), items[index], actorUserId);
     });
     return created;
   }
@@ -106,7 +106,7 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
       await this.entity.updateManyAndReturn({ where: args.where, data: args.data }),
     );
     updated.forEach((row) => {
-      this.emit(ENTITY_UPDATED_EVENT, unsafeCoerce<{ id: string }>(row).id, args.data, actorUserId);
+      this.emit(ENTITY_UPDATED_EVENT, this.idOf(row), args.data, actorUserId);
     });
     return updated;
   }
@@ -124,6 +124,16 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
   async deleteMany(args: { where: DeleteManyWhereOf<TDelegate> }, actorUserId?: string): Promise<void> {
     await this.entity.deleteMany({ where: args.where });
     this.emit(ENTITY_DELETED_EVENT, BULK_ENTITY_ID_SENTINEL, { where: args.where }, actorUserId);
+  }
+
+  /**
+   * `EntityCrudEvent.entityId` is always a string, but a row's primary key
+   * isn't necessarily one (e.g. Organization's `Int` autoincrement id) -
+   * `String()` here is a real conversion, not a cast, so both cases produce
+   * a correct id (a UUID string round-trips through `String()` unchanged).
+   */
+  private idOf(entity: EntityOf<TDelegate>): string {
+    return String(unsafeCoerce<{ id: unknown }>(entity).id);
   }
 
   private emit(eventName: string, entityId: string, payload: unknown, actorUserId?: string): void {
