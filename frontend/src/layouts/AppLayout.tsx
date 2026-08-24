@@ -6,7 +6,7 @@ import { cn } from '../shared/utils/cn';
 import type { RouteHandle } from '../routes/route.types';
 
 interface NavItem {
-  key: 'employee.list' | 'employee.create' | 'organization.chart';
+  key: 'employee.list' | 'employee.create' | 'organization.chart' | 'organization.types';
   label: string;
   to: string;
 }
@@ -26,7 +26,10 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Organization',
-    items: [{ key: 'organization.chart', label: 'Organization Chart', to: '/organizations' }],
+    items: [
+      { key: 'organization.chart', label: 'Organization Chart', to: '/organizations' },
+      { key: 'organization.types', label: 'Organization Types', to: '/organizations/types' },
+    ],
   },
 ];
 

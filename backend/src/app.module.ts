@@ -9,6 +9,7 @@ import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware
 import { AuthModule } from './modules/auth/auth.module';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { OrganizationModule } from './modules/organization/organization.module';
+import { OrganizationTypeModule } from './modules/organization-type/organization-type.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     AuthModule,
     EmployeeModule,
     OrganizationModule,
+    OrganizationTypeModule,
     AuditLogModule,
   ],
 })

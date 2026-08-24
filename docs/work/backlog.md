@@ -47,6 +47,14 @@ WORK-014 (fe: employee list) --> WORK-015 (fe: employee detail) --> WORK-016 (fe
     |
     v
 WORK-018 (end-to-end integration & test pass) -- not started, out of the WORK-000..WORK-017 batch the user asked for
+
+WORK-019 (organization type contract specs)
+    |
+    +--> WORK-020 (organization type backend)
+    |
+    +--> WORK-021 (organization type frontend)
+
+WORK-020 + WORK-021 --> WORK-022 (organization type integration)
 ```
 
 ## Backlog Table
@@ -77,3 +85,15 @@ WORK-018 (end-to-end integration & test pass) -- not started, out of the WORK-00
 - Backend items (`WORK-001`, `WORK-002`, `WORK-005`–`WORK-011`) and frontend items (`WORK-003`, `WORK-012`–`WORK-017`) are being built by two separate implementers since the frontend only depends on the documented API contract, not backend internals.
 - `WORK-004` (Docker verification) and `WORK-018` (integration) require both halves finished and are handled after the backend/frontend implementers report back.
 - Per the Session Context Log rule in `AGENTS.md`, `docs/09-workflow/session-context.md` is refreshed after this batch completes.
+
+## OrganizationType Parallel Work Items
+| ID | Title | Status | Depends On | Primary Specs |
+| --- | --- | --- | --- | --- |
+| WORK-019 | OrganizationType API contract specs | **IMPLEMENTED** | 2026-08-24 daily task | `DB-ORGANIZATION-TYPE`, `API-ORGANIZATION-TYPE-*`, `FRONTEND-ORGANIZATION-TYPE-*` |
+| WORK-020 | OrganizationType backend | APPROVED | WORK-019 | `docs/04-database/entities/organization-type.md`, `docs/06-api/organization-type/*.md` |
+| WORK-021 | OrganizationType frontend | **IMPLEMENTED** | WORK-019 | `docs/06-api/organization-type/*.md`, `docs/07-frontend/pages/organization-type-*.md` |
+| WORK-022 | OrganizationType integration | DRAFT | WORK-020, WORK-021 | OrganizationType backend/frontend contract specs |
+
+Notes:
+- `WORK-020` and `WORK-021` can run in parallel because both depend only on the completed contract in `WORK-019`.
+- `WORK-022` starts only after both backend and frontend agents finish their implementation work.

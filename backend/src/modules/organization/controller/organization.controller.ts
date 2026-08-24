@@ -38,14 +38,17 @@ export class OrganizationController {
 
   @Patch()
   async updateMany(@Body() dto: UpdateOrganizationsDto, @CurrentUser() user: CurrentUserPayload) {
-    const data = { ...dto.data, updatedByUserId: user.id };
-    const organizations = await this.organizationService.updateMany({ where: dto.where, data }, user.id);
+    const items = dto.items.map((item) => {
+      const { id, ...data } = item;
+      return { id, data: { ...data, updatedByUserId: user.id } };
+    });
+    const organizations = await this.organizationService.updateMany(items, user.id);
     return ResponseHelper.success({ data: organizations, message: 'Organizations updated successfully.' });
   }
 
   @Delete()
   async deleteMany(@Body() dto: DeleteOrganizationsDto, @CurrentUser() user: CurrentUserPayload) {
-    await this.organizationService.deleteMany({ where: dto.where }, user.id);
-    return ResponseHelper.success({ data: null, message: 'Organizations deleted successfully.' });
+    const deletedCount = await this.organizationService.deleteMany(dto.ids, user.id);
+    return ResponseHelper.success({ data: { deletedCount }, message: 'Organizations deleted successfully.' });
   }
 }

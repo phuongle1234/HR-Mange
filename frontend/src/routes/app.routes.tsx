@@ -12,11 +12,16 @@ import { EmployeeDetailPage } from '../features/employee/pages/EmployeeDetailPag
 import { EmployeeCreatePage } from '../features/employee/pages/EmployeeCreatePage';
 import { EmployeeEditPage } from '../features/employee/pages/EmployeeEditPage';
 import { OrganizationPage } from '../features/organization/pages/OrganizationPage';
+import { OrganizationTypeCreatePage } from '../features/organization-type/pages/OrganizationTypeCreatePage';
+import { OrganizationTypeListPage } from '../features/organization-type/pages/OrganizationTypeListPage';
+import { OrganizationTypeUpdatePage } from '../features/organization-type/pages/OrganizationTypeUpdatePage';
 import { NotFoundPage } from '../shared/components/NotFoundPage';
 import type { RouteHandle } from './route.types';
 
 const EMPLOYEE_BREADCRUMB_ROOT = { label: 'Employee', to: '/employees' };
 const EMPLOYEE_LIST_BREADCRUMB = { label: 'Employee List', to: '/employees' };
+const ORGANIZATION_BREADCRUMB_ROOT = { label: 'Organization', to: '/organizations' };
+const ORGANIZATION_TYPE_BREADCRUMB = { label: 'Organization Types', to: '/organizations/types' };
 
 function handle(value: RouteHandle): RouteHandle {
   return value;
@@ -111,6 +116,37 @@ export const router = createBrowserRouter([
               title: 'Organization',
               sidebarActiveKey: 'organization.chart',
               breadcrumb: [{ label: '' }],
+            }),
+          },
+          {
+            path: '/organizations/types',
+            element: <OrganizationTypeListPage />,
+            handle: handle({
+              title: 'Organization Types',
+              sidebarActiveKey: 'organization.types',
+              breadcrumb: [ORGANIZATION_BREADCRUMB_ROOT, { label: 'Organization Types' }],
+            }),
+          },
+          {
+            path: '/organizations/types/create',
+            element: <OrganizationTypeCreatePage />,
+            handle: handle({
+              title: 'Create Organization Types',
+              navbarBackButton: true,
+              navbarBackTarget: '/organizations/types',
+              sidebarActiveKey: 'organization.types',
+              breadcrumb: [ORGANIZATION_BREADCRUMB_ROOT, ORGANIZATION_TYPE_BREADCRUMB, { label: 'Create' }],
+            }),
+          },
+          {
+            path: '/organizations/types/update',
+            element: <OrganizationTypeUpdatePage />,
+            handle: handle({
+              title: 'Update Organization Types',
+              navbarBackButton: true,
+              navbarBackTarget: '/organizations/types',
+              sidebarActiveKey: 'organization.types',
+              breadcrumb: [ORGANIZATION_BREADCRUMB_ROOT, ORGANIZATION_TYPE_BREADCRUMB, { label: 'Update' }],
             }),
           },
         ],

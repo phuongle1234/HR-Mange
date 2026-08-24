@@ -41,6 +41,12 @@ Rules:
 | `TOO_MANY_REQUESTS` | `429` | Rate limit exceeded. |
 | `INTERNAL_ERROR` | `500` | Unexpected server error. |
 
+## Organization Type Error Codes
+| Code | Status | Frontend behavior |
+| --- | --- | --- |
+| `ORGANIZATION_TYPE_NOT_FOUND` | `404` | Show page-level not-found/error state and offer navigation back to `/organizations/types`. |
+| `ORGANIZATION_TYPE_NAME_EXISTS` | `409` | Map to `name` field when a specific row path is available; otherwise show a safe form-level conflict message. |
+
 ## Authentication Error Codes
 | Code | Status | Frontend behavior |
 | --- | --- | --- |
@@ -56,6 +62,4 @@ Rules:
 - Do not expose raw backend error objects.
 
 ## Pending Decisions
-- Exact error envelope shape.
-- Whether `fieldErrors` is object, array, or list of path/message pairs.
 - Localization strategy for messages.

@@ -25,6 +25,7 @@ src/shared/api/api-response.ts
 src/shared/api/http-status.ts
 src/shared/api/base-api.service.ts
 src/features/employee/services/employee.api.ts
+src/features/organization-type/services/organization-type.api.ts
 ```
 
 ## Responsibilities
@@ -58,6 +59,12 @@ ApiEndpoints
     ├── create
     ├── update(id)
     └── delete(id)
+└── organizationTypes
+    ├── list
+    ├── byIds
+    ├── createMany
+    ├── updateMany
+    └── deleteMany
 ```
 
 Rules:
@@ -125,6 +132,12 @@ Known employee error mapping examples:
 
 There is no `DEPARTMENT_NOT_DEFINED` or `FORBIDDEN` mapping — Department and the permission model were both removed (`WORK-000` decisions #1/#2).
 
+Known organization type error mapping examples:
+- `ORGANIZATION_TYPE_NAME_EXISTS` -> `items[n].name` when the API returns a field path; otherwise form-level conflict.
+- `ORGANIZATION_TYPE_NOT_FOUND` -> page-level error with navigation back to `/organizations/types`.
+- `VALIDATION_ERROR` -> field-level errors when returned.
+- `UNAUTHORIZED` -> clear token, redirect to `/login`.
+
 ## Base API Service
 Purpose:
 - Wrap shared `get`, `post`, `put`, `patch`, and `delete` calls.
@@ -159,6 +172,17 @@ AuthApiService
 └── forgotPassword(payload)
 ```
 
+Organization type service example:
+
+```text
+OrganizationTypeApiService
+├── list(query)
+├── findByIds(payload)
+├── createMany(payload)
+├── updateMany(payload)
+└── deleteMany(payload)
+```
+
 Rules:
 - Services receive already-normalized payloads from page/hook helpers.
 - Services do not read component state directly.
@@ -173,6 +197,11 @@ useEmployeeDetailQuery(id)
 useCreateEmployeeMutation()
 useUpdateEmployeeMutation()
 useDeleteEmployeeMutation()
+useOrganizationTypesQuery(queryState)
+useOrganizationTypesByIdsQuery(ids)
+useCreateOrganizationTypesMutation()
+useUpdateOrganizationTypesMutation()
+useDeleteOrganizationTypesMutation()
 useLoginMutation()
 useForgotPasswordMutation()
 useChangePasswordMutation()

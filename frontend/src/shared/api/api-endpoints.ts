@@ -19,4 +19,11 @@ export const ApiEndpoints = {
     update: (id: string) => `/api/employees/${encodeURIComponent(id)}`,
     delete: (id: string) => `/api/employees/${encodeURIComponent(id)}`,
   },
+  organizationTypes: {
+    list: () => '/api/organization-types',
+    byIds: () => '/api/organization-types/by-ids',
+    createMany: () => '/api/organization-types',
+    updateMany: () => '/api/organization-types',
+    deleteMany: () => '/api/organization-types',
+  },
 } as const;

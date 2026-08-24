@@ -79,3 +79,23 @@ export class OrganizationNotFoundException extends AppException {
   }
 }
 
+export class OrganizationTypeNotFoundException extends AppException {
+  constructor(id: string) {
+    super(
+      ErrorCode.ORGANIZATION_TYPE_NOT_FOUND,
+      `Organization type with id "${id}" was not found.`,
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+export class OrganizationTypeNameExistsException extends AppException {
+  constructor() {
+    super(
+      ErrorCode.ORGANIZATION_TYPE_NAME_EXISTS,
+      'An organization type with this name already exists.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+

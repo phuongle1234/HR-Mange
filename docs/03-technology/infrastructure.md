@@ -61,6 +61,11 @@ Build context: `docker-compose.yml` builds `backend` from `../backend` and `fron
 - Runs the dev server bound to all interfaces so the host browser can reach it: `npm run dev -- --host 0.0.0.0 --port 5173`.
 - Published port: `FRONTEND_PORT` (default `5173`).
 
+### Local CORS
+- `FRONTEND_URL` is the canonical configured frontend origin.
+- In `NODE_ENV=development`, the backend also allows browser origins running the Vite dev server on port `5173` (for example `http://localhost:5173`, `http://127.0.0.1:5173`, or a LAN IP shown by Vite) so local testing through Vite's network URLs does not fail CORS preflight.
+- Non-development environments must use the configured `FRONTEND_URL` only unless a later deployment spec defines an explicit allowlist.
+
 ## Debugging From VS Code
 Once `backend` is running, attach VS Code to the exposed inspector port instead of launching the process from VS Code directly. Example `launch.json` entry (documented here, not created automatically in the user's VS Code settings):
 ```json

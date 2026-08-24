@@ -1,14 +1,16 @@
-import { ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsInt, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrganizationFilterDto } from './organization-filter.dto';
 import { UpdateOrganizationDto } from './update-organization.dto';
 
-export class UpdateOrganizationsDto {
-  @ValidateNested()
-  @Type(() => OrganizationFilterDto)
-  where!: OrganizationFilterDto;
+export class UpdateOrganizationItemDto extends UpdateOrganizationDto {
+  @Type(() => Number)
+  @IsInt()
+  id!: number;
+}
 
-  @ValidateNested()
-  @Type(() => UpdateOrganizationDto)
-  data!: UpdateOrganizationDto;
+export class UpdateOrganizationsDto {
+  @ArrayMinSize(1, { message: 'items must contain at least 1 organization.' })
+  @ValidateNested({ each: true })
+  @Type(() => UpdateOrganizationItemDto)
+  items!: UpdateOrganizationItemDto[];
 }

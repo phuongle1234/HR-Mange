@@ -7,159 +7,303 @@ status: draft
 
 # Session Context Log
 
-This file is a cumulative summary of the conversation(s) that produced the changes below. It is rewritten (not appended) after each finished task so it always reflects the full conversation to date. If the originating chat/channel is deleted, this file alone should be enough to reconstruct what was asked, what was decided, and what is still open.
+This file is a cumulative summary of the conversation(s) that produced the changes below. It is rewritten, not appended, after each finished task so it always reflects the full conversation to date. If the originating chat/channel is deleted, this file alone should be enough to reconstruct what was asked, what was decided, what changed, and what is still open.
 
 ## Conversation Summary So Far
 
-1. **Spec walkthrough request.** The user asked to read the entire `docs/` tree and `AGENTS.md` and explain what the workspace rules are and what the specification says. A sub-agent read all ~70 spec files; the findings were relayed back in Vietnamese: this is a specification-first repo for an "EmployeeOS" Employee Management System (Auth + Employee CRUD + Permission + Audit Log), fully draft-status, with no application source code yet. The business/UI/API/frontend layers for Auth and Employee are detailed and consistent; the database layer (`docs/04-database`) was almost entirely empty placeholders; and several cross-cutting decisions were flagged as blocking: Department entity, employee status enum, delete strategy, auth token/cookie transport, password policy, and the permission/role model.
+1. The user first asked the agent to read the whole `docs/` tree and `AGENTS.md` and explain the workspace rules and specification. The project was identified as a specification-first EmployeeOS / Employee Management System. At that time there was no main application source yet, the business/UI/API/frontend specs for Auth and Employee were detailed, and the database specs were mostly placeholders.
 
-2. **Spec completion + Docker infra request.** The user asked to:
-   - Fill in ("bổ sung") the missing `docs/04-database` specification content.
-   - Add an infrastructure spec for a local Docker setup with: a backend image debuggable from VS Code, a frontend image, hot reload for both when host source changes, a PostgreSQL service, and a pgAdmin service sharing a network with Postgres so it can be used to browse the database.
-   - Add a rule to `AGENTS.md`: read the relevant spec whenever asked to build the backend or frontend.
-   - Add a rule to `AGENTS.md`: after finishing a task, summarize the whole conversation into a context file (this file), so the conversation can be reconstructed later even if the channel is gone.
+2. The user then asked to fill in the missing `docs/04-database` specs, add local Docker infrastructure specs and files, add a rule requiring spec reads before backend/frontend implementation, and add a rule requiring this cumulative session-context file after every completed task.
 
-3. **Backlog/planning request.** With the IDE showing `docs/05-ui-ux-preview/pages/employee-detail.html` open (informational only, not acted on directly), the user asked to read the specs and produce a plan that splits building the whole project into tasks, one markdown file per task for reporting. This was interpreted as populating `docs/work/` using the project's own existing work-item system (`WORK-XXX` IDs, statuses `DRAFT`→...→`DONE`, templates in `docs/work/templates/`) rather than inventing a new planning format.
+3. The user asked for a project build plan split into work items. The agent created `docs/work/backlog.md` and `WORK-000` through `WORK-018` using the existing work-item format.
 
-4. **Decision resolution + backend implementation request (round 4).** Between round 3 and round 4, `WORK-000-resolve-pending-decisions.md` was resolved (outside the scope of this log entry's own visibility into that step, but its outcome is the ground truth used below) and the affected spec files were rewritten to reflect it: no Department entity, Employee `status` enum `ACTIVE`/`INACTIVE`/`ON_LEAVE`/`TERMINATED` (default `ACTIVE`), hard delete (no `deletedAt`), no role/permission model (only "valid JWT + active user" authorization, no `FORBIDDEN`/403 for permissions), stateless bearer JWT (`{accessToken, user}` in the login body, no cookie, no refresh token, `/auth/logout` a no-op), password policy (min 8 chars + 1 letter + 1 number), `bcryptjs` in place of native `bcrypt`, explicit field lengths, and audit payload shapes per event type. The user then asked to implement the backend side of `WORK-001` through `WORK-011` (a separate frontend agent was asked to handle `WORK-003`/`012`–`017` in parallel, not touched in round 4).
+4. Pending decisions were resolved and recorded as ground truth: no Department entity, no role/permission model, hard delete for Employee, Bearer JWT only, no refresh token/cookie/session store, Employee status enum `ACTIVE`/`INACTIVE`/`ON_LEAVE`/`TERMINATED`, password policy min 8 with at least one letter and one number, `bcryptjs`, explicit field lengths, and audit payload shapes. Backend work then implemented NestJS scaffolding, Prisma schema/migration/seed, Auth, Employee, audit/logging/validation support, and related patterns.
 
-5. **Frontend implementation request (round 5, this round).** In parallel with round 4's backend work, a separate agent session was asked to implement the frontend side: `WORK-003` (scaffolding) and `WORK-012` through `WORK-017` (login, forgot/change password, employee list/detail/create/edit), building against the documented API contract in `docs/06-api` and the resolved `WORK-000` decisions rather than reading backend source (which might not exist yet when this session started). The task explicitly listed the resolved decisions (no Department, no permission model, hard delete, bearer token in Redux + localStorage, employee status enum, error-code mapping table, fixed post-success navigation targets) as ground truth not to be re-litigated, and pointed at `docs/05-ui-ux-preview/pages/*.html` as the approved visual reference.
+5. A parallel frontend session was asked to implement frontend scaffolding and Employee pages, reading documented API contracts and UI preview files instead of relying on backend source.
 
-## What Was Done
+6. On 2026-08-23, later work added an Organization backend module and frontend Organization screen work. Git log shows the last commit that day was `94b2ee6` at `2026-08-23 19:24:25 +0700`, titled `organization frontend screen and the new Organization backend module`. File timestamps after that show follow-up edits to Employee list frontend/shared components and frontend specs, with `docs/09-workflow/session-context.md` updated around `21:00`.
 
-### Round 2 — Database spec (`docs/04-database`)
-Filled in previously one-line placeholder files with concrete draft schemas, keeping `status: draft` and explicitly flagging what is still unapproved (later resolved in round 4 — see below):
-- `architecture.md`, `conventions.md`, `relationships.md`, `indexes.md`, `migration-strategy.md` — global DB specs (entity groups, naming/PK/timestamp conventions, relationship diagram, candidate indexes, Prisma Migrate flow).
-- `entities/user.md`, `entities/employee.md`, `entities/audit-log.md` — full field tables. `departmentId` and `status` on `Employee` were reserved/inert columns explicitly marked BLOCKED/unapproved; permission/role model was presented as two undecided options.
+7. The user asked where the session context file lives. The answer was `docs/09-workflow/session-context.md`.
 
-### Round 2 — Infrastructure spec + implementation
-- Rewrote `docs/03-technology/infrastructure.md`: 4 services (`postgres`, `pgadmin`, `backend`, `frontend`) on one bridge network `employeeos-network`; backend runs `nest start --debug=0.0.0.0:9229 --watch` for VS Code attach + hot reload; frontend dev server bound to `0.0.0.0` for hot reload; both bind-mount host source with a `node_modules` volume; `CHOKIDAR_USEPOLLING=true` as a Windows fallback.
-- Created real files: `infra/docker-compose.yml`, `infra/Dockerfile.backend`, `infra/Dockerfile.frontend`, `infra/README.md`.
-- Updated `docs/00-project/scope.md` and appended new Docker variables to `.env.example`.
+8. The user asked what had happened in the working session so far. The agent read this file and summarized the rounds above.
 
-### Round 2 — AGENTS.md rule additions
-- "Specification First": read spec before building/implementing/scaffolding backend or frontend, even for small requests.
-- "Session Context Log" section (this file's own governing rule).
+9. The user asked what the last work done yesterday was. The agent checked git log and file timestamps and answered that the last clear work on 2026-08-23 was Employee List frontend/shared-component/spec follow-up after the Organization commit.
 
-### Round 3 — Project backlog (`docs/work/`)
-Created `docs/work/backlog.md` (master index + dependency graph) and 19 individual `docs/work/WORK-0NN-*.md` files spanning `WORK-000` (the master blocker, listing all 9 pending decisions with candidate options) through `WORK-018` (final integration pass). At the end of round 3, all 19 items were `DRAFT`/`BLOCKED` with `Test Result: NOT RUN` — nothing had been implemented.
+10. The user asked whether the reusable/common pieces from `EmployeeListPage.tsx` were understood. The agent inspected `frontend/src/features/employee/pages/EmployeeListPage.tsx` and shared components. It identified reusable pieces: `Button`, `SearchAndFilterBar`, `Pagination`, `LoadingState`, `EmptyState`, `ErrorState`, `ConfirmDialog`, `ReviewRow`, `useDebouncedValue`, and other shared primitives. It also noted that the table shell, column definitions, row actions, query-state pattern, status filter, and delete flow were not fully generalized yet. The agent flagged an incidental encoding bug in frontend text such as `Loading employeesâ€¦` and `â€”`, but did not fix it because the user had not asked for code changes.
 
-### Round 4 — WORK-000 decisions resolved, backend implemented (this round)
-**Decisions resolved** (recorded in `docs/work/WORK-000-resolve-pending-decisions.md`, applied throughout `docs/04-database`, `docs/06-api`, and now the real backend source):
-1. No Department entity/field anywhere.
-2. No permission/role model — every protected endpoint checks only "valid, non-expired JWT for an active user"; `FORBIDDEN`/403 unused for permissions this phase.
-3. Hard delete for Employee (no `deletedAt`).
-4. Bearer token only, no cookie, no refresh token, no server-side session store; `/auth/logout` is a no-op kept for contract symmetry.
-5. Employee `status` enum: `ACTIVE`, `INACTIVE`, `ON_LEAVE`, `TERMINATED`, default `ACTIVE`.
-6. Password policy: min 8 chars, at least one letter and one number.
-7. Password hashing via `bcryptjs` (documented substitution for native `bcrypt`, avoids a Windows build-toolchain dependency).
-8. Field lengths: `employeeCode varchar(50)`; `firstName`/`lastName`/`position varchar(100)`; `email varchar(255)`; `phone varchar(30)`.
-9. Audit payloads: `EMPLOYEE_CREATED` → `{employeeCode, email}`; `EMPLOYEE_UPDATED` → `{changedFields}`; `EMPLOYEE_DELETED` → `{employeeCode}` (captured pre-delete). Auth-event auditing explicitly out of scope this phase.
+11. The user asked whether the NestJS `BaseService` was understood. The agent inspected `backend/src/common/services/base.service.ts`, `EmployeeService`, `OrganizationService`, and the base-service refactor plan. It explained that `BaseService` exists to provide inherited CRUD, bulk CRUD, Prisma not-found translation, audit event emission, and Prisma delegate-derived typing so entity services only implement entity-specific logic like `findMany` filters. It also explained the current behavior: `actorUserId` tags audit events, while persisted data is passed unchanged from caller to Prisma.
 
-**Backend implemented at `backend/`** (NestJS + TypeScript + Prisma + PostgreSQL, `Controller -> Service -> Repository -> Prisma -> PostgreSQL` layering per `AGENTS.md`):
-- **WORK-001 (scaffolding)**: Nest CLI project; `ConfigModule` reading `.env` (`APP_PORT`, `DATABASE_URL`, `FRONTEND_URL`, `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `LOG_RETENTION_DAYS`); global `ValidationPipe` (whitelist+transform) with a custom exception factory producing structured `fieldErrors`; global exception filter emitting `{statusCode, code, message, fieldErrors, requestId}`; `ResponseHelper.success()`; `BaseService`/`IBaseService`/`IBaseRepository` generic contracts; request-id middleware + HTTP logging middleware; a winston + `winston-daily-rotate-file` logger (10-day retention via `LOG_RETENTION_DAYS`, files under `backend/logs/`, verified to never log passwords/tokens/secrets — grepped the actual log file to confirm). Removed the Nest CLI's default hello-world controller/service (scaffolding must not add an undefined endpoint).
-- **WORK-002 (database schema)**: `prisma/schema.prisma` with exactly `User`, `Employee`, `AuditLog` (no Department, no `deletedAt`, `EmployeeStatus` enum, `AuditLog.action` as a plain string per spec). Migration `20260821132128_init` applied to the local `employeeos-postgres` container. `prisma/seed.ts` creates one placeholder admin user (`admin@employeeos.local` / `ChangeMe123`, documented as a dev-only placeholder, not a real credential).
-- **WORK-005/006 (auth)**: `AuthModule` (`AuthController`, `AuthService`, `UserRepository`, `JwtStrategy`, shared `JwtAuthGuard` + `@CurrentUser()`). All five endpoints (`login`, `me`, `logout`, `change-password`, `forgot-password`) implemented exactly per `docs/06-api/authentication.md`, using the exact error codes named in the task (`VALIDATION_ERROR`, `INVALID_CREDENTIALS`, `USER_DISABLED`, `UNAUTHORIZED`, `CURRENT_PASSWORD_INVALID`, `PASSWORD_POLICY_FAILED`).
-- **WORK-007–010 (Employee CRUD)**: `EmployeeModule` (`EmployeeController`, `EmployeeService extends BaseService` / `IEmployeeService`, `EmployeeRepository`). All 5 operations (`POST`, `GET :id`, `GET` list with pagination/search/status-filter/sort, `PUT :id`, `DELETE :id`), uniqueness checks on `employeeCode`/`email` excluding the current row on update, hard delete. Every route uses `JwtAuthGuard` only.
-- **WORK-011 (audit log)**: `AuditLogModule` with `AuditLogListener` (`@nestjs/event-emitter`'s `@OnEvent`, chosen as the resolution of this phase's previously-open "event transport" question) subscribing to `EmployeeCreatedEvent`/`EmployeeUpdatedEvent`/`EmployeeDeletedEvent`, writing one `AuditLog` row per event with the exact payload shapes from decision #9. A failed audit write is logged loudly (never swallowed, never rolled back into the already-committed employee mutation).
+12. The user asked the agent to read `docs/09-workflow/daily-tasks/2026-08-24.md` and create a plan for backend and frontend work that allows multiple AI agents to work independently. The user specifically wants an API/spec contract that lets the frontend agent know the API shape and integrate before the backend implementation is finished.
 
-**Verification actually performed** (not just written):
-- `npm run build` → compiles cleanly.
-- `npm run test` → 6 test suites / 33 tests, all passing (services' success + failure paths, `JwtStrategy`, `ResponseHelper`, `GlobalHttpExceptionFilter`, `AuditLogListener`).
-- Ran the built app (`node dist/src/main.js`) against the real `employeeos-postgres` Docker container and exercised every endpoint with `curl`, matching every scenario documented in the new `backend/test/http/**/*.http` files: login success/failure/disabled-user, `/me`, `/logout`, `change-password` (success + all 3 failure modes), `forgot-password` (registered/unregistered/invalid — always the same generic message), employee create/list/get/update/delete including duplicate-code/duplicate-email conflicts, not-found, validation errors, and unauthenticated 401s. Confirmed via `docker exec employeeos-postgres psql` that create/update/delete each produced exactly one correctly-shaped `audit_logs` row, and that delete is a true hard delete (row is gone, not flagged). Test data was cleaned up afterward to leave the seeded database in a clean state.
-- Nine test reports written under `docs/08-testing/reports/{backend,database,auth,employee,audit-log}/WORK-0NN-*-test-report.md`, each with real commands run and real pass/fail counts.
-- All nine `docs/work/WORK-0NN-*.md` files updated: `Work Status` → `IMPLEMENTED`, `Test Result` → real pass counts + link to the corresponding report.
-- `backend/README.md` rewritten (was the raw Nest CLI boilerplate) with exact setup/run/test commands for both local (`npm run start:dev`) and Docker Compose paths.
-- `docs/08-testing/commands.md` updated from draft/placeholder script names to the real, verified `backend/package.json` scripts plus the real `.http` file paths.
+13. The user clarified that merely confirming the plan should not authorize frontend implementation. The agent confirmed the project Planning Rule: a separate explicit implementation command is required before coding.
 
-**Deviations from spec, all deliberate and documented** (see `backend/README.md` and the WORK-001/002 test reports for full reasoning):
-- `bcryptjs` instead of native `bcrypt` (Windows build-toolchain avoidance) — this was already anticipated/authorized by decision #7.
-- Prisma pinned to the 6.x line, not the newly-default 7.x, because Prisma 7's `@prisma/client` does not guarantee the automatic postinstall `prisma generate` that Prisma 6 has — required for `infra/Dockerfile.backend`'s `npm ci`-only constraint to produce a runnable app. Prisma 7 also introduces a `prisma.config.ts`-based architecture and, when first run, scaffolded unrelated `.claude/`/`.windsurf/`/`.agents/` skill folders that were removed.
-- Winston + `winston-daily-rotate-file` chosen for the logger (library was an open "Pending Decision" in `docs/02-solution/logging.md`).
-- In-process `@nestjs/event-emitter` chosen as the event transport (also an open "Pending Decision" in `docs/02-solution/event-driven.md`; WORK-011's own text invited naming it here as the resolution).
+14. The user asked whether one AI can build API/backend and another AI can build frontend independently from the plan. The agent answered yes, but only after the API/spec contract is completed so both agents share the same request/response/error contract.
 
-**Not touched in round 4**: `frontend/` (owned by a separate agent working `WORK-003`/`012`–`017` in parallel); `infra/docker-compose.yml` and `infra/Dockerfile.backend` were left unmodified — verified compatible with what was built (env var names match, `npm ci` + `npx nest start --debug=... --watch` works against the scaffold as built).
+15. The user then explicitly asked to complete the specs so backend and frontend AI agents can both read the same files. The agent created the OrganizationType database/API/frontend contract specs and updated global database/API/frontend specs to reference them.
 
-### Round 5 — Frontend implemented (`WORK-003`, `WORK-012`–`WORK-017`)
+16. The user asked to create concrete work items so one AI can build backend/API and another AI can build frontend in parallel. The agent created OrganizationType work items for contract, backend, frontend, and integration.
 
-**Frontend scaffolded and implemented at `frontend/`** (React 19 + TypeScript + Vite 8, Tailwind CSS v4 via `@tailwindcss/vite`, React Router v7 data router, Redux Toolkit, TanStack Query v5, Axios, React Hook Form + Zod v4, `react-toastify`):
+17. The user explicitly asked to read `docs/work/WORK-021-organization-type-frontend.md` and proceed with implementation. The agent implemented the OrganizationType frontend scope.
 
-- **WORK-003 (scaffolding)**: `npm create vite@latest frontend -- --template react-ts`, then the full documented stack installed exactly as listed. Folder structure per `FRONTEND-ARCHITECTURE`: `src/{app,routes,layouts,providers,store,shared,features/{auth,employee}}`. Provider tree `ReduxProvider -> QueryProvider -> AuthProvider -> RouterProvider` (`src/app/App.tsx`) — no `PermissionProvider`, matching the already-resolved decision #2 (this item's own spec text still described a stubbed `PermissionProvider`/`permissionSlice`; those were never built at all, since the decision removing them predates this implementation). Centralized Axios client (`src/shared/api/api-client.ts`) with request interceptor reading the Bearer token from Redux and a response interceptor normalizing every error into `FrontendApiError` (`src/shared/api/api-error.ts`) and clearing auth on 401. `ApiEndpoints` path builder (`src/shared/api/api-endpoints.ts`). Central route table (`src/routes/app.routes.tsx`) using `createBrowserRouter`/`RouterProvider` with route `handle` metadata (title, breadcrumb, back-button target, sidebar active key) and `AuthGuard`/`PublicOnlyGuard` route wrappers.
-- **WORK-012 (login)**: `LoginPage` (`AuthLayout`, centered), real `AuthProvider` (verifies a stored token via `GET /api/auth/me` on startup, per `docs/07-frontend/providers/auth-provider.md`'s startup flow) and `useAuth()`. `useLoginMutation()` itself persists the token (Redux + `localStorage` via the single `src/shared/auth/token-storage.ts` module) and dispatches `setAuthenticated` on success, matching that spec's literal instruction; `useAuth()` therefore does not duplicate a `login()` wrapper (a deliberate, documented deviation from the prose in `FRONTEND-AUTH-PROVIDER`/`FRONTEND-AUTHENTICATION`, which predates the Bearer-token rewrite's own hook wiring). `INVALID_CREDENTIALS` always shows the same generic message.
-- **WORK-013 (forgot/change password)**: `ForgotPasswordPage` always shows the same safe accepted message regardless of whether the mutation succeeds, fails with an unrelated server error, or the email doesn't exist — only a genuine `VALIDATION_ERROR` shows a field-level error instead. `ChangePasswordPage` (inside `AppLayout`) maps `CURRENT_PASSWORD_INVALID`/`PASSWORD_POLICY_FAILED` to their fields and shows a `react-toastify` success toast.
-- **WORK-014–017 (employee pages)**: `EmployeeListPage`, `EmployeeDetailPage`, `EmployeeCreatePage`, `EmployeeEditPage`, all inside `AppLayout`. No Department field/column/filter anywhere (decision #1 — dropped entirely, not merely disabled as the stale HTML previews still show it). No permission checks on any button — Create/Edit/Delete are unconditionally visible to any authenticated user (decision #2). Delete is a hard, permanent action with no undo UI (decision #3), using a shared `DeleteEmployeeDialog`/`ConfirmDialog` popup pattern reused between the list and detail pages. Create/Edit both use a submit-confirm popup (review-before-submit for create; a previous-value -> new-value diff per changed field for edit, generalized beyond the UI preview's single-`email`-row example — flagged in that item's own Risks section as needing this exact generalization). `EMPLOYEE_CODE_EXISTS`/`EMPLOYEE_EMAIL_EXISTS` map to their fields; `EMPLOYEE_NOT_FOUND` shows a page-level not-found state. Fixed post-success navigation per this round's task decisions: create -> new record's `/employees/:id`; update -> back to `/employees/:id`; delete -> stay on/return to `/employees`; login -> `/employees`.
-- **Design system**: Tailwind v4 `@theme` tokens for the "Green Momentum" palette (`brand`/`danger`/`warning` scales matching `docs/05-ui-ux/design-system.md`'s hex table), dark sidebar (`slate-950`), matching the actual approved HTML previews rather than the older, superseded `index.html`/`index-tailwind.html` mockups in the same preview folder (a research pass read every preview file and flagged the inconsistencies between them before implementation began).
-- **Testing**: Vitest + `@testing-library/react`/`user-event`/`jest-dom` configured (`vite.config.ts`'s `test` block, `src/test/setup.ts` — explicit `afterEach(cleanup)` since Vitest `globals` is intentionally left off). 18 test files, 94 tests, all passing (`npx vitest run`): Zod schemas, the Axios error-normalization function, the `authSlice` reducer, query-key builders, payload builders/diff builders, and at least one rendered-component test per page covering loading/empty/error/success states, all against **mocked** feature API service modules — no live backend was run during this round, which is called out explicitly in every one of the 7 test reports under `docs/08-testing/reports/frontend/WORK-0{03,12,13,14,15,16,17}-*-test-report.md`. `npx tsc -b` and `npm run build` both succeed; `npm run lint` (oxlint) is clean; `npm run dev -- --host 0.0.0.0 --port 5173` was smoke-tested (HTTP 200) and then stopped.
-- **Deviations, all documented in the test reports and `frontend/README.md`**: employee status badge colors (ACTIVE/INACTIVE/ON_LEAVE/TERMINATED) have no approved visual precedent anywhere in the previews (`StatusBadge.tsx` picks green/slate/amber/red as a documented default); list pagination uses a "Previous / Page X of Y / Next" control instead of the static preview's numbered buttons (doesn't scale to a real `total`); no URL search-param sync for list filters (left as a documented possible follow-up, per that item's own "not blocking" pending-decision note).
+18. The user reported `npx prisma migrate deploy` failing with Prisma `P3018` / PostgreSQL `42804`: default for column `organizations.type` could not be cast automatically to the renamed enum `OrganizationChartType`. The agent debugged the migration and fixed `backend/prisma/migrations/20260824193000_add_organization_types/migration.sql` by dropping the default before altering the enum type and setting the default again afterward. The agent then ran `npx prisma migrate resolve --rolled-back "20260824193000_add_organization_types"` and reran `npx prisma migrate deploy`; deploy succeeded.
 
-**Not touched in round 5**: `backend/` (a separate agent's round-4 work, not re-read as source — this round built against the documented `docs/06-api` contract instead, per its own instructions); `infra/docker-compose.yml` and `infra/Dockerfile.frontend` were left unmodified — verified compatible with what was built (`npm ci` then `npm run dev -- --host 0.0.0.0 --port 5173` works against the scaffold as built, with no extra setup step).
+19. The user reported a browser CORS error from the API. The agent confirmed backend CORS only allowed the exact configured origin `http://localhost:5173`, while Vite may be opened from `127.0.0.1:5173` or a LAN IP such as `192.168.1.8:5173`. The agent updated `backend/src/main.ts` so development mode allows any HTTP origin on Vite port `5173` while production still requires the configured `FRONTEND_URL`. The agent updated `docs/03-technology/infrastructure.md` with this local CORS behavior and verified `npm run build` in `backend/` passes.
 
-## Source Material Referenced
-- `AI_PROJECT_SPEC.md` and `requiment.txt` (repo root) — the original prompts that generated the whole `docs/` structure.
-- `docs/09-workflow/spec-initialization-report.md` — prior snapshot of pending decisions and the Department/`departmentId` contradiction (fully resolved as of round 4).
-- `docs/work/README.md` and `docs/work/templates/{feature,api,database,frontend}.md` — the existing work-item system.
-- `docs/work/WORK-000-resolve-pending-decisions.md` — the round-4 decision record that unblocked everything below it.
+20. The user asked to fix `backend/src/modules/organization-type/controller/organization-type.controller.ts` because `this.ensureUniqueNames(dto.items, 'items')` and the update equivalent were validating inside the controller. The user clarified that validation must always be done in DTOs, not controllers. The agent moved duplicate-name validation and update mutable-field validation into reusable DTO validators, added duplicate-id validation to by-ids/delete DTOs, removed the private controller validation helpers, and updated API/workflow docs with the validation ownership rule. `npm run build` in `backend/` passed.
 
-## Open Questions / Pending Decisions (status as of round 5)
-All nine `WORK-000` decisions are now resolved (see above) — the items they were blocking (`WORK-002`–`WORK-017`, i.e. everything except `WORK-004`/`WORK-018`) are implemented on both sides. Remaining open items, none of which block what has been built:
-- **`createdByUserId`/`updatedByUserId`/`performedByUserId` FK `onDelete` behavior** is not specified anywhere; left at Prisma's default (`Restrict`) rather than inventing a cascade/set-null rule — flagged for confirmation if a `User` row ever needs to be deleted.
-- **No live frontend<->backend integration has been run yet.** Round 4 (backend) and round 5 (frontend) were built in parallel by separate agent sessions, each against the documented `docs/06-api` contract, and each verified only against mocks/curl on its own side. Nobody has yet started both `backend` and `frontend` together and clicked through the app in a browser against the real API.
-- **Frontend implementation defaults not separately user-confirmed**: employee status badge colors (no approved visual precedent existed anywhere), list pagination control shape (Previous/Page X of Y/Next instead of numbered buttons), no URL search-param sync for list filters, search debounce timing (400ms). None are structural — see the round-5 test reports under `docs/08-testing/reports/frontend/` for the full list.
-- Auth-event auditing (login success/failure, password-change) remains explicitly out of scope per decision #9; would need a new decision if ever required.
+21. The user then asked the agent to read the backend files they had modified, fix the current backend errors following the user's direction, explain what the user was changing, and update the specs. The agent found that the user was moving the shared bulk CRUD contract toward explicit list/id-based methods on `IBaseService` (`findByIds(ids)`, `updateMany([{ id, data }])`, `deleteMany(ids)`), while `BaseService`, `OrganizationTypeController`, and the older Organization module still used the previous filter-based `{ where, data }` / `{ where }` call shapes. The agent fixed the mismatch by making public `BaseService.updateMany` per-row, public `BaseService.deleteMany` id-based and count-returning, and fixing OrganizationType controller mapping so validation remains in DTOs and delete calls `deleteMany(dto.ids, user.id)`. `npm run build` in `backend/` passed.
 
-### Round 6 — WORK-004 attempted, stopped at user's request
-After rounds 4/5 finished, `docker compose -f infra/docker-compose.yml up -d postgres pgadmin` was run successfully (both containers healthy). A first attempt to also build/run `backend`+`frontend` used `docker compose --project-directory . -f infra/docker-compose.yml up -d --build backend frontend`, which failed with `unable to prepare context: path "C:\backend" not found` — the `--project-directory .` flag changes the base path Compose uses for *every* relative path in the file (not just `.env` lookup), so `../backend` resolved above the repo root instead of into it. The corrected invocation (`docker compose -f infra/docker-compose.yml up -d --build`, run from the repo root, no `--project-directory`) was identified and a second build was started — but the user interrupted mid-build ("hãy stop xóa đi, cho tôi câu lệnh để tôi tự build tự test": stop it, clean it up, give me the commands to build/test myself). The build was stopped (`TaskStop`), containers and dangling build cache removed (`docker compose ... down --remove-orphans`, `docker image prune -f`), and the corrected commands (both the Docker Compose path and the plain `npm install`/`npm run dev`/`npm run test` path for each of `backend/` and `frontend/`) were given directly to the user to run themselves. `docs/work/WORK-004-docker-verification.md` was updated to `IN PROGRESS` with this exact finding recorded — the hot-reload/VS-Code-attach/pgAdmin-browsing checklist itself was not completed by this session.
+22. The user asked why `backend/src/modules/organization/controller/organization.controller.ts` could not call `updateMany`/`deleteMany` directly from `BaseService` and said they wanted Organization to use the base methods the same way. The explanation was that the Organization DTOs still used the old filter-based request shape (`{ where, data }` and `{ where }`), while `BaseService`'s public bulk methods now accept explicit ids/items. The agent changed Organization DTOs and controller to use `items: [{ id, ...fields }]` for update and `ids: number[]` for delete, widened shared entity ids to `string | number` because `organizations.id` is an integer, removed Organization's `updateManyByFilter`/`deleteManyByFilter` methods, and verified `npm run build` in `backend/` passed.
 
-No code changes were needed to `infra/docker-compose.yml`/`infra/Dockerfile.backend`/`infra/Dockerfile.frontend` — they were correct as written; the bug was in the ad hoc `--project-directory` flag used when invoking them manually, not in the files themselves.
+23. The user stated they had deleted `updateManyByFilter`, `deleteManyByFilter`, and the extra base-service helper methods. The agent verified that backend source no longer referenced `updateManyByWhere`/`deleteManyByWhere`/`updateManyByFilter`/`deleteManyByFilter`, ran `npm run build` in `backend/`, and updated the backend architecture/base-service plan/session-context docs so they no longer describe protected filter helpers as part of `BaseService`.
 
-### Round 7 — New AI workflow rules, BaseService generic refactor, Organization module (backend + frontend), git init/push
+24. The user asked to add a standing rule: when `BaseService` already provides a function used by future APIs, that API must use the base method directly. Concrete services must not recreate the same method, create a differently named wrapper just to call base, or create a parallel CRUD variant for the same behavior. The agent updated `AGENTS.md` Backend Rules with this mandatory BaseService reuse rule and also corrected stale BaseService wording there so it matches the current implementation: public bulk methods are exposed on `IBaseService`, `updateMany` uses per-row `{ id, data }` items, `deleteMany` uses explicit ids, and `BaseService` does not persist audit fields automatically.
 
-This round is a separate, later conversation (the specific transition from round 6 is not visible to this session). Major threads, roughly in order:
+25. The user asked to add a standing rule that controllers must not contain validation logic and that all validation code must be in DTOs. The agent updated `AGENTS.md` Backend Rules to state that controllers may bind DTOs, read route/query/body/current-user data, normalize already-valid DTO values into service/Prisma data, and call services, but must not reject requests by checking duplicate values, required fields, formats, ranges, mutually exclusive fields, or cross-row rules inside controller methods. Such validation must live in DTO classes, class-validator/class-transformer decorators, pipes, or reusable DTO validators.
 
-**New standing rules added to `AGENTS.md`** (all confirmed/corrected directly by the user mid-session, not invented proactively):
-- **Planning Rules**: presenting/"approving" a plan (including a plan-mode tool reporting it as approved) is never itself authorization to write code — always wait for a separate, explicit follow-up message before implementing. `docs/09-workflow/plans/` is the standing folder for plan documents; save a copy there whenever a plan is produced (plan-mode's own file lives outside the repo, e.g. `C:\Users\<user>\.claude\plans\*.md` — always also copy it into the repo).
-- **Debugging Rules**: never proactively hunt for bugs outside the current request's scope, but always immediately warn about a real bug noticed incidentally while doing the requested work (never stay silent); never fix a spotted bug silently — report it and wait for explicit confirmation before touching it.
-- **Testing Rules**: never create UT test files or run tests as part of a normal coding request, even if the task would otherwise call for it — only when the user explicitly asks to write/run UT in that request.
-- **Frontend Rules addition**: write every JSX element's attributes on one line (not one prop per line), for every element/component, not just `<button>` — the user demonstrated this by hand-reformatting one button and asked it to apply everywhere.
-- A persistent memory system was also set up this round at `C:\Users\<user>\.claude\projects\c--test-project\memory\` (outside the repo) mirroring these same rules as `feedback_*` memory files, for recall across future sessions.
+26. The user asked how to write a rule so future AI agents build controller `updateMany` mappings in the same format as the current OrganizationType controller. The agent added a Backend Rule to `AGENTS.md`: when a controller calls `BaseService.updateMany`, it must map DTO rows into `Array<{ id, data }>` before calling the service. Simple required-field updates may use a compact one-line object literal, but optional fields must only be included in `data` when they are actually present in the DTO. Fake defaults such as `name: item?.name || ''` are forbidden because they turn omitted fields into real write data and can overwrite existing values incorrectly.
 
-**`BaseService` generic-signature refactor** (multi-iteration, driven by `REQUIEMNT_PROJECT_AI.md` at the repo root, which was rewritten by the user between iterations with a stricter set of constraints each time):
-- Final design: `BaseService<TDelegate extends CrudDelegateShape, TQuery>` (2 generics — down from an original 5) with every Prisma-derived type (`EntityOf`, `CreateDataOf`, `UpdateDataOf`, `CreateManyDataOf`, `UpdateManyDataOf`/`Where`, `DeleteManyWhereOf`) derived purely from `TDelegate` via Prisma's own `Prisma.Args`/`Prisma.Result` utilities (`backend/src/common/services/prisma-crud.types.ts`) — no hand-maintained model registry, no `TEntity`/`TCreateDto`/`TUpdateDto` generics.
-- Core rule settled after several corrections: **`BaseService` never transforms, merges, adds, or drops any field from the data a caller passes it** — not even onto a separate object for the Prisma write. The caller (Controller, e.g. `EmployeeController.create`) builds the complete final data object itself (including `createdByUserId`/`updatedByUserId`), and that exact object is both what gets persisted and what gets published as the audit event payload. `actorUserId` is a separate parameter used only to tag the emitted event's actor.
-- `update`/`delete` (single and bulk) detect a missing row by catching Prisma's own `P2025` error from the write itself — no pre-query "does it exist" check anywhere, since that would violate "no query purely to serve the audit event." `deleteMany` emits one event for the whole batch (not per row, since plain `deleteMany` returns no rows) using `BULK_ENTITY_ID_SENTINEL` (`'BULK'`) as `entityId` and `{ where }` as payload.
-- `EntityCrudEvent.entity` was renamed to `EntityCrudEvent.payload` to reflect this (`common/events/entity-crud.event.ts`).
-- One real bug was caught and fixed during this refactor: `create()`'s `this.entity.create({ ...data })` spread the data fields as top-level Prisma args instead of wrapping them in `{ data }` — would have thrown "Argument `data` is missing" at runtime despite compiling fine (the delegate methods are typed `args: any`). Fixed to `{ data }`.
-- Full design rationale and rejected alternatives: `docs/09-workflow/plans/base-service-generic-refactor.md`. `docs/02-solution/backend-architecture.md` gained a full "BaseService Contract" section (previously an open "Pending Decision" placeholder) documenting all of the above as the project's actual backend architecture spec, not just an `AGENTS.md` coding rule.
+## What Was Changed
 
-**New backend module: `Organization`** (`backend/src/modules/organization/`), sourced from `docs/09-workflow/daily-tasks/2026-08-23.md`:
-- Exposes only `createMany`/`updateMany`/`getAll` (`findMany`)/`deleteMany` — no single create/findOne/update/delete route (`OrganizationController` still inherits those from `BaseService` but doesn't route to them).
-- `Organization.id` is `Int @default(autoincrement())` — a **deliberate, recorded exception** to `DB-CONVENTIONS`' "every table uses UUID" rule (confirmed with the user; documented in `docs/04-database/entities/organization.md` and cross-referenced from `docs/04-database/conventions.md`'s Primary Keys section). This required one shared-file change: `BaseService`'s audit `entityId` extraction now does `String(id)` (a real conversion) instead of a blind type cast, so non-UUID primary keys still produce a valid string `entityId`.
-- Self-referencing hierarchy via `parentId`/`onDelete: SetNull`. Schema applied via `prisma db push` (not a tracked migration file) — the user chose this after `prisma migrate dev` hit pre-existing drift between the DB and migration history unrelated to this change, to avoid the data-destroying `prisma migrate reset` that drift resolution would otherwise require.
-- `.http` file: one combined `backend/test/http/organization/organization.http` (per explicit request, unlike Employee's one-file-per-endpoint convention).
-- A known, explicitly-flagged-not-fixed gap: bulk `createMany`/`updateMany` have no try/catch for Prisma's unique-constraint error (`P2002`) — a duplicate `code` would surface as a raw 500, not a clean 4xx.
+### Database Specs And Infra
 
-**New frontend feature: Organization Chart** (`frontend/src/features/organization/`), sourced from `docs/09-workflow/daily-tasks/fe-2026-08-23.md` (a **frontend-only** task — no real API calls, all state in a local "Frontend Stage"):
-- New dependencies added: `@xyflow/react` (React Flow's current package name), `@dagrejs/dagre`, `@mui/material` + `@emotion/react`/`@emotion/styled` + `@mui/icons-material` — first use of MUI in this codebase (existing UI is hand-built Tailwind components).
-- The task file itself had an internal contradiction (a read-only "Detail Modal" described early on vs. a full editable "Edit Modal" described at the end) — resolved by the user in favor of the full Edit modal, which required adding an `isActive` field to `OrganizationStage` not in the task's original TS interface.
-- Verified working end-to-end with a real headless-browser pass (Playwright installed ad hoc into the session scratchpad, not added to the project — chromium-cli/Playwright were not preinstalled in this environment): login → empty state → create root → `[+]` add child with parent shown read-only → tree layout via dagre → click body opens Edit modal prefilled → `[x]` deletes with descendants → canvas pan/zoom-locked confirmed → zero console errors. Screenshots taken, not persisted in the repo.
-- **The user then hand-edited several files directly** (marked with `#feeback` comments each time, which were read, explained back to the user, and then stripped out on request) — importantly, some of these edits **reverse things the original task explicitly required**, and were kept as-is per the user's explicit instruction not to revert them, with the specs updated to document the new reality instead of the original brief:
-  - `OrganizationFlow.tsx`: `nodesDraggable`, `panOnDrag`, `zoomOnScroll`, `zoomOnPinch` were all removed (React Flow defaults them to `true`) — nodes can now be dragged and the canvas can be panned/zoomed, contradicting the task's explicit "Bắt buộc" list and 3 Acceptance Criteria checkboxes.
-  - `app.routes.tsx`: `/change-password` was moved from the protected `AuthGuard`→`AppLayout` branch to the public `AuthLayout` branch (alongside `/login`) — it is now reachable without authentication and renders without Navbar/Sidebar.
-  - `AppLayout.tsx`: `Navbar` now always renders `<UserMenu />` regardless of the route's `handle.showUserMenu` (previously only `/employees` showed it) — this affects every route using `AppLayout`, not just Organization. `handle.showUserMenu` is now dead/unread.
-  - Two follow-up edits fixed real build errors the above changes had left behind (unused `ThemeProvider`/`createTheme`/`CssBaseline` imports, unused `currentUser` in `Navbar`) — confirmed pure dead-code removal, no behavior change, `npm run build` passes clean again.
-  - All three behavioral deviations are now documented as the current intended state in `docs/07-frontend/pages/organization-chart.md` (new spec file — none existed for this page before), `docs/07-frontend/react-route.md`, and `docs/07-frontend/pages/change-password.md`.
-- Sidebar (`AppLayout.tsx`) restructured from a flat `NAV_ITEMS` array into grouped sections (`NAV_GROUPS`) to add an "Organization" group alongside "Employee".
+- Filled in `docs/04-database` global and entity specs during earlier rounds.
+- Added local Docker infrastructure spec and files for PostgreSQL, pgAdmin, backend, and frontend.
+- Updated `.env.example` and project scope docs for Docker variables and infrastructure behavior.
 
-**Task-tracking convention added**: `docs/09-workflow/daily-tasks/` — a lightweight folder (distinct from the heavier `docs/work/WORK-XXX-*.md` ticket system) for the user to drop dated ad-hoc task files (e.g. `2026-08-23.md`, `fe-2026-08-23.md`) for the assistant to read and turn into a plan.
+### Work Planning
 
-**Git**: the repo had no `.git` before this round. Initialized, `.gitignore` extended (explicit `backend/`/`frontend/` `node_modules`/`dist` entries, `.claude/settings.local.json`), one initial commit (332 files, verified no `.env`/secrets/`node_modules` staged), pushed to `https://github.com/phuongle1234/HR-Mange.git` (`main` branch, after the user resolved a stale-credential auth failure on their end).
+- Created `docs/work/backlog.md`.
+- Created `docs/work/WORK-000-resolve-pending-decisions.md` through `docs/work/WORK-018-integration-test-pass.md`.
+- Created `docs/09-workflow/plans/base-service-generic-refactor.md`.
+- Created `docs/09-workflow/plans/organization-module-bulk-crud.md`.
+- Created `docs/09-workflow/plans/organization-frontend-chart.md`.
+- Created `docs/09-workflow/plans/organization-type-parallel-contract-plan.md` on 2026-08-24.
+- Created `docs/work/WORK-019-organization-type-api-contract.md`.
+- Created `docs/work/WORK-020-organization-type-backend.md`.
+- Created `docs/work/WORK-021-organization-type-frontend.md`.
+- Created `docs/work/WORK-022-organization-type-integration.md`.
+- Updated `docs/work/backlog.md` with the OrganizationType parallel dependency graph and work-item section.
 
-## Open Questions / Pending Decisions (status as of round 7)
-- **No live integration between the new Organization frontend screen and the new Organization backend module** — the frontend is deliberately stub-only (`organizationApi.*` all throw "not implemented"); nobody has wired the real `createMany`/`updateMany`/`getAll`/`deleteMany` endpoints into `useOrganizationStage`/React Query yet.
-- **Organization bulk endpoints have no unique-constraint (`P2002`) error handling** — flagged, not fixed; a duplicate `code` in `createMany`/`updateMany` currently surfaces as a raw 500.
-- **Three frontend behaviors now deliberately diverge from the original task brief** (React Flow drag/pan/zoom now enabled, `/change-password` ungated + rendered without the app shell, `UserMenu` always shown) — accepted by the user as final for now; specs updated to match, but flagged in this log in case that acceptance needs revisiting later.
-- Everything else recorded as open in round 6 (`createdByUserId` FK `onDelete` behavior, no full backend+frontend Employee-side click-through, frontend implementation defaults) remains open and was not revisited this round.
-- `WORK-004` (Docker Compose stack verification) and `WORK-018` (browser click-through) status is unknown to this round — not mentioned or worked on.
+### Latest Plan: OrganizationType Parallel Contract
 
-## Recommended Next Step
-Decide whether to wire the Organization frontend screen to the real backend endpoints (removing the `organizationApi.*` stubs), and whether the three accepted frontend deviations from the original task brief (drag/pan/zoom enabled, ungated change-password, always-visible user menu) should stay permanent or be revisited. Otherwise, `WORK-004`/`WORK-018` from earlier rounds remain the oldest untouched open items.
+The new plan `docs/09-workflow/plans/organization-type-parallel-contract-plan.md` covers the 2026-08-24 task:
+
+- Add an `OrganizationType` CRUD feature as a level-2 menu under Organization.
+- Split work into an API/spec agent, backend agent, frontend-shared agent, frontend-feature agent, and final integration agent.
+- Make API/spec contract the shared source of truth so backend and frontend can work in parallel.
+- Specify recommended docs to create under `docs/04-database`, `docs/06-api/organization-type`, and `docs/07-frontend/pages`.
+- Recommend endpoints:
+  - `GET /api/organization-types`
+  - `POST /api/organization-types/by-ids`
+  - `POST /api/organization-types`
+  - `PATCH /api/organization-types`
+  - `DELETE /api/organization-types`
+- Recommend DTO contracts for list, create-many, find-by-ids, update-many, and delete-many.
+- Plan backend changes including `BaseService.findByIds()` and a new NestJS `organization-type` module.
+- Plan frontend changes including shared `ContextMenu`, `useGridInputNavigation`, `FullPageLoadingOverlay`, and OrganizationType list/create/update pages.
+- Recommend new work items `WORK-019` through `WORK-023`.
+
+### OrganizationType Contract Specs Completed
+
+The following contract specs were created or updated so backend and frontend agents can work independently from the same source of truth:
+
+- `docs/04-database/entities/organization-type.md`
+- `docs/04-database/relationships.md`
+- `docs/04-database/indexes.md`
+- `docs/06-api/conventions.md`
+- `docs/06-api/error-response.md`
+- `docs/06-api/organization-type/list-organization-types.md`
+- `docs/06-api/organization-type/get-organization-types-by-ids.md`
+- `docs/06-api/organization-type/create-organization-types.md`
+- `docs/06-api/organization-type/update-organization-types.md`
+- `docs/06-api/organization-type/delete-organization-types.md`
+- `docs/07-frontend/api-client.md`
+- `docs/07-frontend/architecture.md`
+- `docs/07-frontend/react-route.md`
+- `docs/07-frontend/pages/organization-type-list.md`
+- `docs/07-frontend/pages/organization-type-create.md`
+- `docs/07-frontend/pages/organization-type-update.md`
+
+Resolved contract decisions:
+
+- `OrganizationType.id` uses UUID, following `DB-CONVENTIONS`.
+- `OrganizationType.name` is required, max 100 chars, and unique.
+- `OrganizationType.description` is optional, max 1000 chars at API level, and empty string normalizes to `null`.
+- Bulk create/update/delete/by-ids requests accept 1 to 100 rows or ids.
+- API base path is `/api/organization-types`.
+- Frontend routes are `/organizations/types`, `/organizations/types/create`, and `/organizations/types/update`.
+- The update page reads checked ids from Redux key `organization_type_checked`.
+- `BaseService.findByIds(ids)` is now part of the backend contract to implement.
+- Frontend can build against the documented `organizationTypeApiService` methods and use mocks/stubs until backend is available.
+
+### OrganizationType Work Items Created
+
+- `WORK-019`: OrganizationType API contract specs, status `IMPLEMENTED`.
+- `WORK-020`: OrganizationType backend, status `APPROVED`, depends on `WORK-019`.
+- `WORK-021`: OrganizationType frontend, status `APPROVED`, depends on `WORK-019`.
+- `WORK-022`: OrganizationType integration, status `DRAFT`, depends on `WORK-020` and `WORK-021`.
+
+This split allows backend and frontend agents to work in parallel from the same completed contract specs.
+
+### WORK-021 OrganizationType Frontend Implemented
+
+Implemented frontend files include:
+
+- shared `ContextMenu`
+- shared `useGridInputNavigation`
+- shared `FullPageLoadingOverlay`
+- Redux selection handoff slice for `organization_type_checked`
+- `organization-type` feature types, schemas, service, query keys, hooks, and pages
+- routes `/organizations/types`, `/organizations/types/create`, `/organizations/types/update`
+- sidebar item `Organization Types` under Organization
+
+Verification:
+
+- Ran `npm run build` in `frontend/`.
+- Build passed.
+- Unit tests were not created or run because the user did not explicitly request UT.
+
+### Prisma Migration Deploy Fixed
+
+Migration affected:
+
+- `backend/prisma/migrations/20260824193000_add_organization_types/migration.sql`
+
+Root cause:
+
+- The migration renamed/replaced the existing enum used by `organizations.type` from `OrganizationType` to `OrganizationChartType`.
+- PostgreSQL could cast row values through `USING "type"::text::"OrganizationChartType"`, but it could not automatically cast the existing column default to the new enum type.
+
+Fix:
+
+- Added `ALTER COLUMN "type" DROP DEFAULT` before the type change.
+- Added `ALTER COLUMN "type" SET DEFAULT 'DEPARTMENT'::"OrganizationChartType"` after the type change.
+- Marked the previously failed migration attempt as rolled back.
+- Re-ran `npx prisma migrate deploy`, which applied successfully.
+
+Observed DB state after fix:
+
+- `OrganizationChartType` exists.
+- old `OrganizationType` enum no longer exists.
+- `organization_types` table exists.
+- `_prisma_migrations` contains one rolled-back record and one finished record for `20260824193000_add_organization_types`, which is expected after resolving a failed migration and applying it again.
+
+### API CORS Fixed
+
+Files changed:
+
+- `backend/src/main.ts`
+- `docs/03-technology/infrastructure.md`
+
+Root cause:
+
+- Backend CORS used a single static origin from `FRONTEND_URL`.
+- Browser origin must match `Access-Control-Allow-Origin` exactly.
+- Opening frontend through `http://127.0.0.1:5173` or a Vite network URL did not match `http://localhost:5173`, so the browser blocked the request.
+
+Fix:
+
+- In development, backend now allows HTTP origins on port `5173`.
+- In production, backend still only allows the configured `FRONTEND_URL`.
+- `npm run build` in `backend/` passed after the change.
+
+Operational note:
+
+- The backend process must be restarted before the new CORS code takes effect.
+
+### OrganizationType DTO Validation Ownership Fixed
+
+Files changed:
+
+- `backend/src/modules/organization-type/controller/organization-type.controller.ts`
+- `backend/src/modules/organization-type/dto/create-organization-types.dto.ts`
+- `backend/src/modules/organization-type/dto/update-organization-types.dto.ts`
+- `backend/src/modules/organization-type/dto/delete-organization-types.dto.ts`
+- `backend/src/modules/organization-type/dto/get-organization-types-by-ids.dto.ts`
+- `backend/src/modules/organization-type/validators/organization-type-dto.validator.ts`
+- `docs/06-api/conventions.md`
+- `docs/work/WORK-020-organization-type-backend.md`
+
+What changed:
+
+- Removed controller methods `ensureUniqueNames` and `ensureUniqueUpdateNames`.
+- Removed controller-level check for "each update item must include at least one mutable field".
+- Added reusable DTO validators for duplicate OrganizationType names and mutable update fields.
+- Added DTO-level duplicate-id validation for by-ids and delete requests.
+- DTOs now trim `name` and normalize empty `description` to `null`.
+
+Verification:
+
+- Ran `npm run build` in `backend/`.
+- Build passed.
+
+### Backend Bulk Contract Repair
+
+Files changed:
+
+- `backend/src/common/services/base.service.ts`
+- `backend/src/modules/organization-type/controller/organization-type.controller.ts`
+- `backend/src/modules/organization/controller/organization.controller.ts`
+- `backend/src/modules/organization/interfaces/organization-service.interface.ts`
+- `backend/src/modules/organization/service/organization.service.ts`
+- `docs/02-solution/backend-architecture.md`
+- `docs/09-workflow/plans/base-service-generic-refactor.md`
+- `docs/06-api/organization-type/update-organization-types.md`
+- `docs/06-api/organization-type/delete-organization-types.md`
+- `docs/work/WORK-020-organization-type-backend.md`
+
+What the user was changing:
+
+- The backend shared service contract was being moved from older filter-shaped bulk operations toward OrganizationType-friendly bulk methods that accept explicit ids or per-row update items.
+- Validation ownership was being kept in DTOs and reusable DTO validators, not in controllers.
+- OrganizationType controller should only map already-valid DTO data into service write data, including `createdByUserId`/`updatedByUserId`.
+
+Fix:
+
+- Public `BaseService.updateMany` now accepts `Array<{ id, data }>` and delegates to `update(id, data, actorUserId)` per row.
+- Public `BaseService.deleteMany` now accepts explicit ids, builds `where: { id: { in: ids } }`, emits one batch delete event, and returns the deleted count.
+- Shared entity ids are typed as `string | number`, because `Employee`/`OrganizationType` use UUID strings while `Organization` deliberately uses an integer id.
+- `BaseService` no longer keeps protected filter bulk helpers; shared bulk behavior is explicit-id based only.
+- Organization bulk update/delete now use explicit item ids and call inherited `updateMany`/`deleteMany` directly from `BaseService`; the prior `updateManyByFilter` and `deleteManyByFilter` methods were removed.
+- OrganizationType update mapping now only includes `name` and `description` when those fields are present in the DTO, and delete calls `deleteMany(dto.ids, user.id)`.
+
+### Backend Rules Updated
+
+Files changed:
+
+- `AGENTS.md`
+- `docs/09-workflow/session-context.md`
+
+New standing rule:
+
+- If an API needs behavior already implemented by `BaseService` or exposed on `IBaseService`, it must call the inherited base method directly.
+- Concrete services must not redeclare the same method, wrap it with another differently named method just to call back into base, or create a parallel CRUD variant for the same behavior.
+- Add a service-specific method only when the behavior is genuinely not covered by `BaseService`.
+- If a DTO shape is the only mismatch, adjust the endpoint contract/DTO to match the base method when that is the real business operation.
+
+Controller validation rule:
+
+- Controllers must not perform request validation.
+- All request validation must live in DTO classes, class-validator/class-transformer decorators, pipes, or reusable DTO validators.
+- Controllers may normalize already-valid DTO values into service/Prisma data, but must not reject requests by checking duplicate values, required fields, formats, ranges, mutually exclusive fields, or cross-row rules in controller code.
+
+Controller bulk mapping rule:
+
+- Controllers calling `BaseService.updateMany` must map DTO rows to `Array<{ id, data }>` and call the inherited service method directly.
+- For simple required-field updates, the mapping may be a compact one-line object literal.
+- For optional update fields, only include fields that are present in the DTO.
+- Do not use fake defaults such as `name: item?.name || ''` in update mappings.
+
+Verification:
+
+- Ran `npm run build` in `backend/`.
+- Build passed.
+- Unit tests were not created or run because the user did not explicitly request UT.
+
+## Pending Or Unresolved
+
+- The OrganizationType frontend implementation is complete for `WORK-021`; backend `WORK-020` is partially implemented/fixed in this session and now compiles, but final API integration remains pending for `WORK-022`.
+- The 2026-08-24 task file has encoding mojibake in Vietnamese text, but the intent was still readable. No encoding cleanup was performed.
+- The frontend still has observed mojibake text in some components/pages, such as `Loading employeesâ€¦` and `â€”`. This was reported but not fixed.
+- Existing unrelated worktree changes remain present and were not touched as part of the OrganizationType spec task, including Employee frontend/shared component files and other untracked project files shown by `git status`.

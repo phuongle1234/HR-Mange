@@ -23,6 +23,11 @@ const AUDIT_ACTION_BY_ENTITY: Record<
     updated: AuditAction.ORGANIZATION_UPDATED,
     deleted: AuditAction.ORGANIZATION_DELETED,
   },
+  [AuditEntityType.ORGANIZATION_TYPE]: {
+    created: AuditAction.ORGANIZATION_TYPE_CREATED,
+    updated: AuditAction.ORGANIZATION_TYPE_UPDATED,
+    deleted: AuditAction.ORGANIZATION_TYPE_DELETED,
+  },
 };
 
 /**

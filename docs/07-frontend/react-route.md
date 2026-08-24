@@ -74,6 +74,9 @@ There is no `permission` metadata key.
 | `/employees/:id` | `EmployeeDetailPage` | `AppLayout` | yes | `Employee Detail` | `employee.list` |
 | `/employees/:id/edit` | `EmployeeEditPage` | `AppLayout` | yes | `Edit Employee` | `employee.list` |
 | `/organizations` | `OrganizationPage` | `AppLayout` | yes | `Organization` | `organization.chart` |
+| `/organizations/types` | `OrganizationTypeListPage` | `AppLayout` | yes | `Organization Types` | `organization.types` |
+| `/organizations/types/create` | `OrganizationTypeCreatePage` | `AppLayout` | yes | `Create Organization Types` | `organization.types` |
+| `/organizations/types/update` | `OrganizationTypeUpdatePage` | `AppLayout` | yes | `Update Organization Types` | `organization.types` |
 | `*` | `NotFoundPage` | `NotFoundLayout` | no | `Page Not Found` | none |
 
 `/change-password` moved from `AppLayout`/`AuthGuard` to `AuthLayout` (ungated) — see "Change Password Route" below for what this means in practice.
@@ -132,6 +135,39 @@ Behavior:
 - `AuthGuard` checks authenticated user through `AuthProvider`.
 - `AppLayout` renders Navbar, Sidebar, and WrapContent.
 - `EmployeeCreatePage` renders inside WrapContent once the guard passes — no further permission check.
+
+## Organization Type Routes
+```text
+path: /organizations/types
+component: OrganizationTypeListPage
+layout: AppLayout
+authRequired: true
+title: Organization Types
+sidebarActiveKey: organization.types
+
+path: /organizations/types/create
+component: OrganizationTypeCreatePage
+layout: AppLayout
+authRequired: true
+title: Create Organization Types
+navbarBackButton: true
+navbarBackTarget: /organizations/types
+sidebarActiveKey: organization.types
+
+path: /organizations/types/update
+component: OrganizationTypeUpdatePage
+layout: AppLayout
+authRequired: true
+title: Update Organization Types
+navbarBackButton: true
+navbarBackTarget: /organizations/types
+sidebarActiveKey: organization.types
+```
+Behavior:
+- All three routes require `AuthGuard`.
+- No permission check exists in this phase.
+- The sidebar renders these routes under the `Organization` group.
+- The update route reads checked ids from Redux key `organization_type_checked`; if no ids exist, it renders a safe empty-selection state instead of calling the API.
 
 ## Not Found Route
 ```text

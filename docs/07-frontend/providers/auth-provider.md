@@ -61,11 +61,11 @@ clearAuth()
 ## Responsibilities
 - On app start, read the token from `localStorage` via `token-storage.ts`.
 - If no token exists, dispatch `setUnauthenticated()` immediately (no API call).
-- If a token exists, dispatch `setAuthChecking()`, call `GET /api/auth/me` with that token attached, and:
-  - On success: dispatch `setAuthenticated({ accessToken, currentUser })`.
+- If a token exists, dispatch `setAuthChecking(token)`, call `GET /api/auth/me` with that token attached, and:
+  - On success: dispatch `setAuthenticated({ accessToken: token, currentUser: user })`.
   - On `401`/failure: clear the stored token and dispatch `setUnauthenticated()`.
-- Expose auth state to `AuthGuard` and page hooks through `useAuth()`.
-- On login success (`useLoginMutation`), store the returned `accessToken` (Redux + `localStorage`) and dispatch `setAuthenticated(...)` directly — no extra `GET /api/auth/me` call is needed right after login since the login response already includes the user.
+- Expose auth state through Redux and `useAuth()`; route guards consume the Redux-backed auth state rather than raw token values.
+- On login success (`useLoginMutation`), store the returned `accessToken` in Redux + `localStorage` and dispatch `setAuthenticated(...)` directly — no extra `GET /api/auth/me` call is needed right after login since the login response already includes the user.
 
 ## Startup Flow
 ```text
@@ -94,9 +94,10 @@ useAuth()
 ├── login(payload)
 ├── logout()
 ```
-- `login()` wraps `useLoginMutation()` and, on success, stores the token and dispatches `setAuthenticated`.
-- `logout()` calls `POST /api/auth/logout` (best-effort — there is no server-side session to invalidate), clears the stored token, dispatches `clearAuth()`, and navigates to `/login`.
-- `useAuth()` never returns the raw token to page components; only `authStatus`/`currentUser` are exposed for UI use. The Axios interceptor reads the token from the Redux store directly, not through this hook.
+- `login()` wraps the login mutation and, on success, stores the token and dispatches `setAuthenticated`.
+- `logout()` calls the auth logout action (best-effort — there is no server-side session to invalidate), clears the token from storage, dispatches `setUnauthenticated()`, and navigates to `/login`.
+- The application exposes the token only to the Axios interceptor via Redux state; page components do not read it directly.
+- `useAuth()` is the public read wrapper for `authStatus` and `currentUser`, while `AuthProvider` itself owns the startup validation flow.
 
 ## Logout Flow
 ```text

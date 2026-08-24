@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+
+### List organization types
+GET {{baseUrl}}/organization-types
+Authorization: ******
+
+### Get organization types by ids
+POST {{baseUrl}}/organization-types/by-ids
+Authorization: ******
+Content-Type: application/json
+
+{
+  "ids": [
+    "00000000-0000-0000-0000-000000000000"
+  ]
+}
+
+### Create organization types
+POST {{baseUrl}}/organization-types
+Authorization: ******
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "name": "Department",
+      "description": "Functional department"
+    },
+    {
+      "name": "Team",
+      "description": "Delivery team"
+    }
+  ]
+}
+
+### Update organization types
+PATCH {{baseUrl}}/organization-types
+Authorization: ******
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "name": "Department",
+      "description": "Updated department description"
+    }
+  ]
+}
+
+### Delete organization types
+DELETE {{baseUrl}}/organization-types
+Authorization: ******
+Content-Type: application/json
+
+{
+  "ids": [
+    "00000000-0000-0000-0000-000000000000"
+  ]
+}

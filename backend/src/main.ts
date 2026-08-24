@@ -8,6 +8,15 @@ import { validationExceptionFactory } from './common/pipes/validation-exception-
 import { AppLoggerService } from './common/logger/app-logger.service';
 import { AppConfig } from './config/configuration';
 
+function isAllowedDevOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return url.protocol === 'http:' && url.port === '5174';
+  } catch {
+    return false;
+  }
+}
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
@@ -19,9 +28,17 @@ async function bootstrap(): Promise<void> {
   app.useLogger(logger);
 
   const configService = app.get(ConfigService<AppConfig>);
+  const configuredFrontendUrl = configService.get('app.frontendUrl', { infer: true });
+  const isDevelopment = configService.get('nodeEnv', { infer: true }) === 'development';
 
   app.enableCors({
-    origin: configService.get('app.frontendUrl', { infer: true }),
+    origin: (origin, callback) => {
+      if (!origin || origin === configuredFrontendUrl || (isDevelopment && isAllowedDevOrigin(origin))) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS origin not allowed: ${origin}`));
+    },
     credentials: true,
   });
 

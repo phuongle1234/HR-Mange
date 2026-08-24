@@ -1,6 +1,6 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
-import { IBaseService, PaginatedResult } from '../interfaces/base.interface';
+import { EntityId, IBaseService, PaginatedResult } from '../interfaces/base.interface';
 import { AuditEntityType } from '../constants/audit-action.constant';
 import {
   BULK_ENTITY_ID_SENTINEL,
@@ -66,10 +66,28 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
 
   abstract findMany(query?: TQuery): Promise<PaginatedResult<EntityOf<TDelegate>>>;
 
-  async findOne(id: string): Promise<EntityOf<TDelegate>> {
+  async findOne(id: EntityId): Promise<EntityOf<TDelegate>> {
     const found = unsafeCoerce<EntityOf<TDelegate> | null>(await this.entity.findUnique({ where: { id } }));
-    if (!found) throw this.notFoundException(id);
+    if (!found) throw this.notFoundException(String(id));
     return found;
+  }
+
+  async findByIds(ids: EntityId[]): Promise<EntityOf<TDelegate>[]> {
+    if (ids.length === 0) return [];
+
+    const uniqueIds = [...new Set(ids)];
+    const items = unsafeCoerce<EntityOf<TDelegate>[]>(
+      await this.entity.findMany({ where: { id: { in: uniqueIds } } }),
+    );
+    const byId = new Map(items.map((item) => [String(unsafeCoerce<{ id: unknown }>(item).id), item]));
+    const ordered = uniqueIds.map((id) => byId.get(String(id))).filter((item): item is EntityOf<TDelegate> => !!item);
+
+    if (ordered.length !== uniqueIds.length) {
+      const missingId = uniqueIds.find((id) => !byId.has(String(id)));
+      if (missingId !== undefined) throw this.notFoundException(String(missingId));
+    }
+
+    return ordered;
   }
 
   async create(data: CreateDataOf<TDelegate>, actorUserId?: string): Promise<EntityOf<TDelegate>> {
@@ -87,43 +105,42 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
     return created;
   }
 
-  async update(id: string, data: UpdateDataOf<TDelegate>, actorUserId?: string): Promise<EntityOf<TDelegate>> {
+  async update(id: EntityId, data: UpdateDataOf<TDelegate>, actorUserId?: string): Promise<EntityOf<TDelegate>> {
     try {
       const updated = unsafeCoerce<EntityOf<TDelegate>>(await this.entity.update({ where: { id }, data }));
-      this.emit(ENTITY_UPDATED_EVENT, id, data, actorUserId);
+      this.emit(ENTITY_UPDATED_EVENT, String(id), data, actorUserId);
       return updated;
     } catch (error) {
-      if (isRecordNotFoundError(error)) throw this.notFoundException(id);
+      if (isRecordNotFoundError(error)) throw this.notFoundException(String(id));
       throw error;
     }
   }
 
   async updateMany(
-    args: { where: UpdateManyWhereOf<TDelegate>; data: UpdateManyDataOf<TDelegate> },
+    items: Array<{ id: EntityId; data: UpdateDataOf<TDelegate> }>,
     actorUserId?: string,
   ): Promise<EntityOf<TDelegate>[]> {
-    const updated = unsafeCoerce<EntityOf<TDelegate>[]>(
-      await this.entity.updateManyAndReturn({ where: args.where, data: args.data }),
-    );
-    updated.forEach((row) => {
-      this.emit(ENTITY_UPDATED_EVENT, this.idOf(row), args.data, actorUserId);
-    });
-    return updated;
+    return Promise.all(items.map((item) => this.update(item.id, item.data, actorUserId)));
   }
 
-  async delete(id: string, actorUserId?: string): Promise<void> {
+  async delete(id: EntityId, actorUserId?: string): Promise<void> {
     try {
       await this.entity.delete({ where: { id } });
     } catch (error) {
-      if (isRecordNotFoundError(error)) throw this.notFoundException(id);
+      if (isRecordNotFoundError(error)) throw this.notFoundException(String(id));
       throw error;
     }
-    this.emit(ENTITY_DELETED_EVENT, id, {}, actorUserId);
+    this.emit(ENTITY_DELETED_EVENT, String(id), {}, actorUserId);
   }
 
-  async deleteMany(args: { where: DeleteManyWhereOf<TDelegate> }, actorUserId?: string): Promise<void> {
-    await this.entity.deleteMany({ where: args.where });
-    this.emit(ENTITY_DELETED_EVENT, BULK_ENTITY_ID_SENTINEL, { where: args.where }, actorUserId);
+  async deleteMany(ids: EntityId[], actorUserId?: string): Promise<number> {
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length === 0) return 0;
+
+    const where = unsafeCoerce<DeleteManyWhereOf<TDelegate>>({ id: { in: uniqueIds } });
+    const result = unsafeCoerce<{ count: number }>(await this.entity.deleteMany({ where }));
+    this.emit(ENTITY_DELETED_EVENT, BULK_ENTITY_ID_SENTINEL, { where }, actorUserId);
+    return result.count;
   }
 
   /**

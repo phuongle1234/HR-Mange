@@ -25,7 +25,7 @@ Define the React page-level behavior for listing employees. Route structure, lay
 Route-level decisions:
 - Layout: `AppLayout`.
 - Auth guard: required through `AuthProvider`.
-- Permission: `employee.read`.
+- Permission model: none; no `PermissionGuard` or permission checks are enforced in this phase.
 - Navbar title: `Employees`.
 - Navbar back button: hidden.
 
@@ -45,14 +45,17 @@ Page responsibilities:
 - Show delete success with `react-toastify` at top-right.
 - Navigate to create/detail/edit pages.
 
-## Hooks
-| Hook | Purpose |
+## Hooks / Shared Components
+| Hook / Component | Purpose |
 | --- | --- |
 | `useAuth()` | Read `authStatus` and `currentUser`. |
 | `useNavigate()` | Navigate to create/detail/edit pages. |
-| `useEmployeesQuery(queryState)` | Fetch `GET /api/employees`. |
+| `useQuery()` + `employeeApiService.list(queryState)` | Fetch `GET /api/employees`. |
 | `useDeleteEmployeeMutation()` | Submit `DELETE /api/employees/:id`. |
-| `useSearchParams()` | Optional sync for page/search/filter query params. |
+| `SearchAndFilterBar` | Shared search input + optional custom filter slot + create action. |
+| `Pagination` | Shared list pagination UI built on MUI `Pagination`, with page conversion from app 1-based indexing to MUI's 0-based page index. |
+| `ResponsiveGrid` | Shared reusable layout grid for list/filter toolbars. |
+| `useSearchParams()` | Optional sync for page/search/filter query params; not required for the current implementation. |
 
 ## useEffect Design
 | Effect | Dependency | Purpose |
@@ -65,8 +68,8 @@ Page responsibilities:
 | State | Owner | Notes |
 | --- | --- | --- |
 | Auth state | `AuthProvider` / Redux global state | Page reads through `useAuth()`. |
-| Permission state | `PermissionProvider` / global state | Controls UI only; backend remains final boundary. |
-| Search/filter/page state | Local state or URL search params | Do not store in Redux. |
+| Permission state | Not implemented | There is no `PermissionProvider` and no permission checks in this phase. |
+| Search/filter/page state | Local state | The current implementation keeps search/filter/page state in React local state and resets page to 1 on filter changes. |
 | Employee list data | TanStack Query | Server state, not Redux. |
 | Delete confirm popup state | Local state | Stores selected employee for confirmation. |
 | Selected delete employee | Local state | Holds the row employee being reviewed in the popup. |
@@ -75,25 +78,15 @@ Page responsibilities:
 | Toast message | react-toastify | Success toast appears at top-right. |
 
 ## Query State
-Query hook:
+Query key pattern:
 
 ```text
-useEmployeesQuery(queryState)
+employeeQueryKeys.list(queryState)
 ```
 
-Query key:
+Current implementation uses `useQuery` directly in the page and the key is built through the feature query-key helper, not a custom hook.
 
-```text
-['employees', queryState]
-```
-
-Enabled condition:
-
-```text
-authStatus === 'authenticated'
-```
-
-Query params:
+Current query-state fields:
 - `page`
 - `limit`
 - `search`
@@ -102,6 +95,40 @@ Query params:
 - `sortOrder`
 
 There is no `departmentId` filter — Department was removed from scope (`WORK-000` decision #1).
+
+The toolbar is built with the shared `SearchAndFilterBar` component, which accepts a custom filter slot for the status select and keeps the search field generic across list pages.
+
+## Table Rendering Pattern
+The current implementation renders list semantics inside a valid HTML table structure:
+
+```tsx
+<table>
+  <thead>...</thead>
+  <tbody>
+    {isLoading && (
+      <tr>
+        <td colSpan={7}>
+          <LoadingState label="Loading employees…" />
+        </td>
+      </tr>
+    )}
+
+    {!isLoading && employees.length === 0 && (
+      <tr>
+        <td colSpan={7}>
+          <EmptyState label="No employees found." />
+        </td>
+      </tr>
+    )}
+
+    {employees.map((employee) => (
+      <tr key={employee.id}>...</tr>
+    ))}
+  </tbody>
+</table>
+```
+
+This is the approved rendering pattern for this page. Loading and empty states must stay inside `tbody`, after `thead`, so the table remains valid HTML and the row count / column span stays consistent.
 
 ## Mutation State
 Delete mutation hook:
@@ -200,13 +227,13 @@ Route guard passes
     ↓
 EmployeeListPage mounted inside AppLayout WrapContent
     ↓
-Read auth and permission context
+Read auth state from `AuthProvider`
     ↓
 Initialize local query state
     ↓
 TanStack Query fetches employees when enabled
     ↓
-Render loading / error / empty / success table state
+Render loading / error / empty / success table state with valid table structure
     ↓
 User changes filters or pagination
     ↓

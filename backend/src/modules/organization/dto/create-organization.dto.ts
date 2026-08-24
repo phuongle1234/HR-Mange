@@ -1,6 +1,6 @@
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min, MinLength, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { OrganizationType } from '@prisma/client';
+import { OrganizationChartType } from '@prisma/client';
 
 export class CreateOrganizationDto {
   @IsString()
@@ -24,8 +24,8 @@ export class CreateOrganizationDto {
   parentId?: number;
 
   @IsOptional()
-  @IsEnum(OrganizationType, { message: 'type must be one of COMPANY, BRANCH, DIVISION, DEPARTMENT, TEAM.' })
-  type?: OrganizationType;
+  @IsEnum(OrganizationChartType, { message: 'type must be one of COMPANY, BRANCH, DIVISION, DEPARTMENT, TEAM.' })
+  type?: OrganizationChartType;
 
   @IsOptional()
   @IsInt()

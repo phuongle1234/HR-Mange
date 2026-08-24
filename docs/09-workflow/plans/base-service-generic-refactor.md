@@ -18,7 +18,7 @@ Qua trao đổi, đã chốt thêm các quyết định sau (giữ nguyên phầ
 2. **`delete(id, actorUserId)`**: không query record trước khi xoá (bỏ hẳn `findOne()`), không cần snapshot, audit payload = `{}`. Not-found được phát hiện bằng cách bắt lỗi Prisma `PrismaClientKnownRequestError` code `P2025` ngay tại lệnh `delete()`/`update()`, thay vì query trước.
 3. **`UpdateEmployeeDto.id`** (do `AttachRouteIdInterceptor` gắn vào chỉ để phục vụ `@IsEmployeeCodeUnique()`/`@IsEmployeeEmailUnique()` loại trừ chính nó) **không được để BaseService tự loại bỏ nữa** (vi phạm "không tự ý loại field"). Thay vào đó: **`EmployeeController.update()` tự strip `id` khỏi `dto` trước khi gọi service** — Controller quyết định data nào được truyền xuống, BaseService/EmployeeService nhận đúng data đó, không đứa nào đụng vào giữa chừng.
 4. **`deleteMany(where)`**: không query trước (giữ đúng tinh thần "không query chỉ để phục vụ audit"), vì `deleteMany` thường (không phải `delete` đơn) không cho biết trước những row nào khớp. Ghi **1 event duy nhất cho cả batch** (không phải 1 event/row), dùng `entityId` sentinel (hằng số cố định, ví dụ `'BULK'`) vì không có 1 id cụ thể nào đại diện cho cả batch; payload = `{ where }` (điều kiện lọc), không phải business data snapshot.
-5. **`createMany`/`updateMany` vẫn giữ per-row event** (khác `deleteMany`) — vì `createManyAndReturn`/`updateManyAndReturn` đã tự trả về đủ row trong CHÍNH lệnh ghi đó (không cần thêm query riêng), nên không vi phạm nguyên tắc "không query thêm". Payload mỗi event vẫn là input gốc (item tương ứng trong mảng `data[]` cho createMany; object `data` dùng chung cho cả batch trong updateMany), không phải row trả về.
+5. **`createMany`/`updateMany` vẫn giữ per-row event** (khác `deleteMany`). `createMany` dùng item tương ứng trong mảng `data[]`. Public `updateMany` hiện nhận danh sách `{ id, data }[]` để mỗi row có update data riêng, rồi gọi `update(id, data, actorUserId)` cho từng item; payload mỗi event là `data` của item đó.
 6. **Đổi tên `EntityCrudEvent.entity` → `EntityCrudEvent.payload`** để phản ánh đúng ý nghĩa mới (không còn chắc chắn là "toàn bộ entity" nữa — có thể là input data, `{}`, hay `{where}`).
 
 ---
@@ -143,16 +143,19 @@ async delete(id: string, actorUserId?: string): Promise<void> {
 }
 ```
 
-- **`createMany(dataArray: CreateManyDataOf<TDelegate>, actorUserId?)`/`updateMany(args: { where: UpdateManyWhereOf<TDelegate>; data: UpdateManyDataOf<TDelegate> }, actorUserId?)`**: dùng `createManyAndReturn`/`updateManyAndReturn` như bản trước (không cần query thêm vì bản thân lệnh ghi đã trả về đủ row) — nhưng **payload audit đổi thành input gốc**, không phải row trả về:
+- **`createMany(dataArray: CreateManyDataOf<TDelegate>, actorUserId?)`/`updateMany(items: Array<{ id: string; data: UpdateDataOf<TDelegate> }>, actorUserId?)`**: `createMany` dùng `createManyAndReturn`; public `updateMany` nhận per-row data và gọi lại `update(id, data, actorUserId)` cho từng item — nhưng **payload audit đổi thành input gốc**, không phải row trả về:
   - `createMany`: emit 1 event/row, `payload = dataArray[i]` (item gốc theo đúng thứ tự — Postgres trả `RETURNING` đúng thứ tự insert cho 1 câu lệnh multi-row, đủ tin cậy ở quy mô hiện tại), `entityId = created[i].id`.
-  - `updateMany`: emit 1 event/row bị ảnh hưởng, `payload = args.data` (object dùng chung cho cả batch, không phải row), `entityId = updated[i].id`.
-- **`deleteMany(args: { where: DeleteManyWhereOf<TDelegate> }, actorUserId?)`**: **không query trước**, gọi thẳng `this.entity.deleteMany({where: args.where})`. Emit **1 event duy nhất cho cả batch** — không phải 1 event/row:
+  - `updateMany`: emit 1 event/row được update, `payload = item.data`, `entityId = item.id`.
+- **`deleteMany(ids: string[], actorUserId?)`**: **không query trước**, build `where: { id: { in: ids } }`, gọi thẳng `this.entity.deleteMany({where})`, trả về `count`. Emit **1 event duy nhất cho cả batch** — không phải 1 event/row:
   ```ts
-  async deleteMany(args: { where: DeleteManyWhereOf<TDelegate> }, actorUserId?: string) {
-    await this.entity.deleteMany({ where: args.where });
-    this.emit(ENTITY_DELETED_EVENT, BULK_ENTITY_ID_SENTINEL, { where: args.where }, actorUserId);
+  async deleteMany(ids: string[], actorUserId?: string) {
+    const where = { id: { in: [...new Set(ids)] } };
+    const result = await this.entity.deleteMany({ where });
+    this.emit(ENTITY_DELETED_EVENT, BULK_ENTITY_ID_SENTINEL, { where }, actorUserId);
+    return result.count;
   }
   ```
+  Filter-based bulk delete is not part of the shared base contract; callers that want to use shared `BaseService.deleteMany` must pass explicit ids.
   `BULK_ENTITY_ID_SENTINEL` = hằng số (vd `'BULK'`) export từ `entity-crud.event.ts`, dùng làm `entityId` khi không có 1 record cụ thể nào đại diện cho sự kiện — có comment giải thích rõ trong `AuditLogListener`/doc để người đọc audit log sau này không hiểu nhầm đó là 1 UUID thật.
 - **Đổi `EntityCrudEvent.entity` → `EntityCrudEvent.payload`** (rename thuần, không đổi logic) để tên field phản ánh đúng: đây là "payload được ghi vào audit", không phải "toàn bộ entity" nữa.
 
@@ -188,11 +191,10 @@ Controller là nơi duy nhất đụng vào `dto.id` này — cả `BaseService`
 
 ### Ảnh hưởng tới `IBaseService`
 
-**Quyết định: KHÔNG sửa `IBaseService` trong lần refactor này.**
+**Quyết định cập nhật sau OrganizationType: `IBaseService` đã được mở rộng additively cho bulk theo use case thật.**
 
-- Vì sao: `IBaseService`/`IEmployeeService`/`EmployeeController` chỉ quan tâm tầng DTO (Controller-facing), hoàn toàn tách khỏi cách `BaseService` suy luận kiểu Prisma nội bộ. `EntityOf<PrismaService['employee']>` sau khi suy ra sẽ khớp chính xác với `Employee` mà `IEmployeeService` đang khai báo → không có xung đột kiểu nào phát sinh.
-- `createMany`/`updateMany`/`deleteMany` **chưa** được thêm vào `IBaseService`/`IEmployeeService` — chúng chỉ tồn tại như method concrete trên `BaseService`, sẵn sàng dùng khi cần, nhưng chưa lộ ra qua tầng Controller. Lý do: bulk "where" filter cần 1 kiểu hợp lý ở tầng Controller (khác hẳn `id: string` của single update) — thiết kế nó bây giờ là đoán mò khi chưa có route/tính năng thực tế cần dùng. Khi nào có nhu cầu (vd "import hàng loạt nhân viên"), sẽ mở rộng `IBaseService`/`IEmployeeService` đúng lúc đó với DTO/filter phù hợp cho chính tính năng đó.
-- File bị ảnh hưởng nếu sau này cần đổi: chỉ `common/interfaces/base.interface.ts` (thêm 3 method signature — thay đổi thuần cộng thêm, không phá method cũ nào).
+- Vì sao: OrganizationType cần bulk create/update/delete theo contract đã chốt. `IBaseService` vì vậy có thêm `findByIds(ids)`, `createMany(items[])`, `updateMany(items: { id, data }[])`, và `deleteMany(ids)`.
+- Bulk theo filter không còn là contract public mặc định của `IBaseService`; Organization bulk controller dùng explicit `items[].id` và `ids[]` để gọi thẳng inherited `updateMany(...)` và `deleteMany(...)`.
 
 ### Về mức độ "type-safe" thật sự (nói thẳng, không tô hồng)
 

@@ -24,10 +24,17 @@ Each endpoint must define:
 - Status codes.
 - Error codes.
 
+## Validation Ownership
+- DTO classes and reusable DTO validators own input validation.
+- Controllers must not hand-roll validation for request shape, duplicate values, required mutable fields, array sizes, or field formats.
+- Controllers may normalize already-valid DTOs into service/Prisma write data, but if a request can be rejected before service execution, the rule belongs in DTO validation.
+- Cross-row request validation, such as duplicate names inside `items[]`, must use a reusable DTO validator rather than a private controller method.
+
 ## URL Conventions
 - API paths use `/api`.
 - Auth endpoints use `/api/auth`.
 - Employee endpoints use `/api/employees`.
+- Organization type endpoints use `/api/organization-types`.
 - Dynamic IDs use `:id` in specs.
 
 ## Response Conventions

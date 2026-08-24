@@ -65,13 +65,14 @@ abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = unknown
 ```
 
 - `TDelegate` is the *only* Prisma-related generic — the injected Prisma model delegate (e.g. `PrismaService['employee']`). Entity type and every create/update/where input type are derived from `TDelegate` via Prisma's own `Prisma.Args`/`Prisma.Result` utilities (`backend/src/common/services/prisma-crud.types.ts`) — never supplied as separate generics, never hand-maintained in a registry.
-- There is no `TCreateDto`/`TUpdateDto` generic. `create`/`update`/`createMany`/`updateMany` take the Prisma input type derived from `TDelegate` directly as their parameter type — TypeScript checks at each call site whether the caller's data is assignable into it.
+- There is no `TCreateDto`/`TUpdateDto` generic. `create`/`update`/`createMany`/`updateMany` take the Prisma input type derived from `TDelegate` directly as their parameter type — TypeScript checks at each call site whether the caller's data is assignable into it. Public `updateMany` accepts per-row items shaped as `{ id, data }[]`.
+- Entity ids may be `string` or `number`; `BaseService` converts them to string only when emitting audit events or building not-found exceptions.
 - `IBaseService<TEntity, TCreateDto, TUpdateDto, TQuery>` (`backend/src/common/interfaces/base.interface.ts`) is the Controller-facing contract (e.g. `IEmployeeService extends IBaseService<Employee, CreateEmployeeDto, UpdateEmployeeDto, GetEmployeesQueryDto>`) and is independent of `TDelegate` — it stays DTO-typed. A concrete service's `implements IBaseService<...>` only succeeds if its inherited data type is structurally assignable to/from the DTO; if a future entity's DTO doesn't line up with its Prisma input, that entity needs its own method (not named `create`/`update`) to build the right shape before delegating.
 
 ### Method ownership
 | Method | Owner | Notes |
 | --- | --- | --- |
-| `create`, `createMany`, `findOne`, `update`, `updateMany`, `delete`, `deleteMany` | `BaseService` (concrete) | Concrete services (e.g. `EmployeeService`) do not redeclare these. |
+| `create`, `createMany`, `findOne`, `findByIds`, `update`, `updateMany`, `delete`, `deleteMany` | `BaseService` (concrete) | Concrete services (e.g. `EmployeeService`) do not redeclare these. |
 | `findMany` | Concrete service (abstract on `BaseService`) | Search/filter shape is entity-specific; no generic equivalent. |
 
 ### Data ownership rule
@@ -83,9 +84,9 @@ The caller (Controller, or a concrete service's own business method) decides the
 ### Audit eventing
 After every create/update/delete (single or bulk), `BaseService` emits `EntityCrudEvent` (`backend/src/common/events/entity-crud.event.ts`, topics `entity.created`/`entity.updated`/`entity.deleted`) carrying `entityType`, `entityId`, `payload`, and the actor. `payload` is exactly the caller's original data — never the row Prisma returns:
 - `create`/`update`: the caller's `data` object, as-is.
-- `createMany`/`updateMany`: the corresponding input item (per row for `createMany`; the shared `data` object for every affected row in `updateMany`).
+- `createMany`/`updateMany`: the corresponding input item per row. Public `updateMany` calls single-row `update(id, data, actorUserId)` for each item so every row can carry different update data.
 - `delete`: `{}` — no business data is associated with a delete, and no pre-delete snapshot query is made.
-- `deleteMany`: **one event for the whole batch**, not one per row (plain `deleteMany` returns no rows, and querying first just to learn affected ids would violate the no-snapshot-query rule) — `entityId` is `BULK_ENTITY_ID_SENTINEL` (`'BULK'`), `payload` is `{ where }`.
+- `deleteMany`: accepts explicit ids, deletes with `where: { id: { in: ids } }`, returns the deleted count, and emits **one event for the whole batch**, not one per row — `entityId` is `BULK_ENTITY_ID_SENTINEL` (`'BULK'`), `payload` is `{ where }`.
 
 `AuditLogListener` (`backend/src/modules/audit-log`) subscribes to these 3 events generically, mapping `entityType` to the right `AuditAction` via a lookup table — it has no per-entity handler methods.
 

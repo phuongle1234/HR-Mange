@@ -1,6 +1,6 @@
 import { IsBoolean, IsEnum, IsInt, IsOptional } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { OrganizationType } from '@prisma/client';
+import { OrganizationChartType } from '@prisma/client';
 
 /**
  * Shared filter shape: used as GET /organizations query params, and as the
@@ -13,8 +13,8 @@ export class OrganizationFilterDto {
   parentId?: number;
 
   @IsOptional()
-  @IsEnum(OrganizationType, { message: 'type must be one of COMPANY, BRANCH, DIVISION, DEPARTMENT, TEAM.' })
-  type?: OrganizationType;
+  @IsEnum(OrganizationChartType, { message: 'type must be one of COMPANY, BRANCH, DIVISION, DEPARTMENT, TEAM.' })
+  type?: OrganizationChartType;
 
   @IsOptional()
   // Query params arrive as strings - `@Type(() => Boolean)` would use the

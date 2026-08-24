@@ -37,7 +37,6 @@ src
 ├── layouts
 │   ├── AppLayout.tsx
 │   ├── AuthLayout.tsx
-│   ├── ForbiddenLayout.tsx
 │   └── NotFoundLayout.tsx
 ├── providers
 │   └── AuthProvider.tsx
@@ -45,12 +44,20 @@ src
 ├── shared
 │   ├── api
 │   ├── components
+│   │   ├── Button.tsx
+│   │   ├── PageStates.tsx
+│   │   ├── SearchAndFilterBar.tsx
+│   │   ├── Pagination.tsx (shared pagination wrapper around MUI `Pagination`)
+│   │   ├── ResponsiveGrid.tsx
+│   │   └── Breadcrumb.tsx
 │   ├── hooks
 │   ├── utils
 │   └── validation
 └── features
     ├── auth
-    └── employee
+    ├── employee
+    ├── organization
+    └── organization-type
 ```
 
 Rules:
@@ -58,6 +65,7 @@ Rules:
 - Feature modules contain domain-specific pages, hooks, services, schemas, and helpers.
 - Page components orchestrate hooks and render UI; they do not own API client setup.
 - Layout components own navbar/sidebar/wrap content structure; pages do not recreate layout.
+- Reusable list-page primitives such as `SearchAndFilterBar`, `Pagination`, and `ResponsiveGrid` belong in `shared/components` and are intended to be composed by multiple list pages.
 
 ## Provider Tree
 The provider order is defined by route spec and must be preserved.
@@ -100,6 +108,9 @@ Employee feature proposed structure:
 src/features/employee
 ├── pages
 ├── components
+│   ├── StatusBadge.tsx
+│   ├── DeleteEmployeeDialog.tsx
+│   └── EmployeeTable.tsx (optional, if a list table is extracted later)
 ├── hooks
 ├── services
 ├── schemas
@@ -114,6 +125,7 @@ Rules:
 - Services call API client and endpoints.
 - Schemas hold Zod validation.
 - Utils hold pure helpers such as payload builders and display mapping.
+- List pages should use shared list primitives (`SearchAndFilterBar`, `Pagination`, `ResponsiveGrid`) rather than duplicating toolbar and pagination markup in each page.
 
 Auth feature proposed structure:
 
@@ -134,11 +146,34 @@ Rules:
 - Change Password renders in `AppLayout`.
 - Password values must stay inside form submit lifecycle and must not be stored globally.
 
+OrganizationType feature proposed structure:
+
+```text
+src/features/organization-type
+├── pages
+│   ├── OrganizationTypeListPage.tsx
+│   ├── OrganizationTypeCreatePage.tsx
+│   └── OrganizationTypeUpdatePage.tsx
+├── hooks
+├── services
+├── schemas
+├── types
+└── utils
+```
+
+Rules:
+- The frontend source of truth for API shape is `docs/06-api/organization-type/*.md`, not backend source.
+- Use mock/stub API data only as a temporary development adapter; page logic and service types must match the documented contract.
+- Shared right-click menu behavior belongs in `shared/components/ContextMenu.tsx`.
+- Shared arrow-key table input focus behavior belongs in `shared/hooks/useGridInputNavigation.ts`.
+
 ## State Ownership
 | State | Owner |
 | --- | --- |
 | Auth status, access token, and current user | Redux through AuthProvider |
 | Employee list/detail data | TanStack Query |
+| Organization type list/by-ids data | TanStack Query |
+| Organization type checked ids for update handoff | Redux Toolkit |
 | Create/edit form values | React Hook Form |
 | Auth form values | React Hook Form |
 | Search/filter/page UI state | Local React state or approved URL search params |

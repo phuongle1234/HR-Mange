@@ -1,16 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useEmployeesQuery } from '../hooks/useEmployeesQuery';
+import { useQuery } from '@tanstack/react-query';
 import { useDeleteEmployeeMutation } from '../hooks/useDeleteEmployeeMutation';
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { Button } from '../../../shared/components/Button';
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/components/PageStates';
+import { Pagination } from '../../../shared/components/Pagination';
+import { SearchAndFilterBar } from '../../../shared/components/SearchAndFilterBar';
 import { StatusBadge } from '../components/StatusBadge';
 import { DeleteEmployeeDialog } from '../components/DeleteEmployeeDialog';
 import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_VALUES } from '../types/employee.types';
 import type { Employee, EmployeeListQueryState, EmployeeStatus } from '../types/employee.types';
 import type { FrontendApiError } from '../../../shared/api/api-error';
+import { employeeApiService } from '../services/employee.api';
+import { employeeQueryKeys } from '../utils/query-keys';
 
 const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 400;
@@ -43,7 +47,12 @@ export function EmployeeListPage() {
     [page, debouncedSearch, status],
   );
 
-  const employeesQuery = useEmployeesQuery(queryState);
+  // #feeback
+  const employeesQuery = useQuery({
+    queryKey: employeeQueryKeys.list(queryState),
+    queryFn: () => employeeApiService.list(queryState),
+  });
+
   const deleteEmployeeMutation = useDeleteEmployeeMutation();
 
   function handleSearchChange(value: string) {
@@ -94,34 +103,22 @@ export function EmployeeListPage() {
       </p>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_200px]">
-            <input
-              type="search"
-              aria-label="Search employees"
-              placeholder="Search by code, name, or email"
-              value={searchInput}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-            />
-            <select
-              aria-label="Filter by status"
-              value={status}
-              onChange={(event) => handleStatusChange(event.target.value)}
-              className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-            >
-              {STATUS_FILTER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button onClick={() => navigate('/employees/create')}>Create Employee</Button>
-        </div>
-
-        {employeesQuery.isLoading && <LoadingState label="Loading employees…" />}
-
+        <SearchAndFilterBar
+          searchValue={searchInput}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Search by code, name, or email"
+          createLabel="Create Employee"
+          onCreate={() => navigate('/employees/create')}
+        >
+          <select
+            aria-label="Filter by status"
+            value={status}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) => handleStatusChange(event.target.value)}
+            className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+          >
+            <>{STATUS_FILTER_OPTIONS.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}</>
+          </select>
+        </SearchAndFilterBar>
         {employeesQuery.isError && (
           <ErrorState
             message="Unable to load employees. Please try again."
@@ -129,11 +126,8 @@ export function EmployeeListPage() {
           />
         )}
 
-        {employeesQuery.isSuccess && employees.length === 0 && (
-          <EmptyState label="No employees found." />
-        )}
 
-        {employeesQuery.isSuccess && employees.length > 0 && (
+        
           <>
             <div className="h-[calc(100vh-380px)] min-h-[240px] overflow-auto">
               <table className="w-full text-left">
@@ -163,7 +157,15 @@ export function EmployeeListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {employees.map((employee) => (
+                  {employeesQuery?.isLoading && (
+                    <tr><td colSpan={7}> <LoadingState label="Loading employees…" /></td></tr>
+                  )}
+
+                  {!employeesQuery?.isLoading && employeesQuery.isSuccess && employees.length === 0 && (
+                    <tr><td colSpan={7}><EmptyState label="No employees found." /></td></tr>
+                  )}
+                  
+                  {!employeesQuery?.isLoading && employeesQuery.isSuccess && employees.map((employee) => (
                     <tr key={employee.id} className="hover:bg-slate-50">
                       <td className="px-4 py-4 text-sm font-black text-slate-950">
                         {employee.employeeCode}
@@ -207,35 +209,15 @@ export function EmployeeListPage() {
               </table>
             </div>
 
-            {meta && (
-              <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 p-4 sm:flex-row">
-                <p className="text-sm text-slate-500">
-                  Showing {(meta.page - 1) * meta.limit + 1}-
-                  {Math.min(meta.page * meta.limit, meta.total)} of {meta.total} employees
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    disabled={meta.page <= 1}
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm font-bold text-slate-700">
-                    Page {meta.page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    disabled={meta.page >= totalPages}
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              page={meta?.page || 1}
+              totalPages={totalPages}
+              total={meta?.total || 1}
+              limit={meta?.limit || 10}
+              onPageChange={(nextPage) => setPage(nextPage)}
+            />
           </>
-        )}
+        
       </div>
 
       <DeleteEmployeeDialog
