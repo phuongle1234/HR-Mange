@@ -31,10 +31,12 @@ Route-level decisions:
 ```text
 src/features/organization-type/pages/OrganizationTypeCreatePage.tsx
 src/features/organization-type/schemas/organization-type.schema.ts
+src/features/organization-type/utils/organization-type-form.ts
 src/features/organization-type/hooks/useCreateOrganizationTypesMutation.ts
 src/shared/components/ContextMenu.tsx
 src/shared/hooks/useGridInputNavigation.ts
 src/shared/components/FullPageLoadingOverlay.tsx
+src/shared/components/ConfirmDialog.tsx
 ```
 
 ## Responsibilities
@@ -95,6 +97,14 @@ Columns:
 
 Validation messages appear below the related input inside the same table cell.
 
+Page action bar:
+- `Cancel` navigates back to `/organizations/types`.
+- `Add Row` appends one empty editable row.
+- `Submit` runs React Hook Form validation and opens the confirm dialog when valid.
+- Submit is disabled while the form is invalid or the create mutation is pending.
+
+The editable table may scroll horizontally/vertically inside its container without leaving the form page.
+
 ## Context Menu
 Open source:
 - `onContextMenu` on the table-form container.
@@ -145,6 +155,7 @@ Redirect to /organizations/types
 ## Loading State
 - Submit button disabled while invalid or mutation pending.
 - Full-page loading overlay appears after confirmation while mutation is pending.
+- Confirm dialog can be dragged by its header area and closes on outside click when the create mutation is not pending.
 
 ## Error State
 - Field errors render under inputs.

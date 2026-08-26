@@ -47,10 +47,13 @@ src
 │   │   ├── Button.tsx
 │   │   ├── PageStates.tsx
 │   │   ├── SearchAndFilterBar.tsx
+│   │   ├── SortableTableHeader.tsx
 │   │   ├── Pagination.tsx (shared pagination wrapper around MUI `Pagination`)
 │   │   ├── ResponsiveGrid.tsx
 │   │   └── Breadcrumb.tsx
 │   ├── hooks
+│   │   ├── useDebounce.ts
+│   │   └── useListQueryState.ts
 │   ├── utils
 │   └── validation
 └── features
@@ -65,7 +68,9 @@ Rules:
 - Feature modules contain domain-specific pages, hooks, services, schemas, and helpers.
 - Page components orchestrate hooks and render UI; they do not own API client setup.
 - Layout components own navbar/sidebar/wrap content structure; pages do not recreate layout.
-- Reusable list-page primitives such as `SearchAndFilterBar`, `Pagination`, and `ResponsiveGrid` belong in `shared/components` and are intended to be composed by multiple list pages.
+- Reusable list-page primitives such as `SearchAndFilterBar`, `SortableTableHeader`, `Pagination`, and `ResponsiveGrid` belong in `shared/components` and are intended to be composed by multiple list pages.
+- Reusable list-page state behavior such as `search`, `page`, `limit`, `sortBy`, `sortOrder`, and matching handlers belongs in `shared/hooks/useListQueryState.ts`.
+- Debounced values for query inputs use `shared/hooks/useDebounce.ts`, implemented with `lodash.debounce`.
 
 ## Provider Tree
 The provider order is defined by route spec and must be preserved.
@@ -125,7 +130,8 @@ Rules:
 - Services call API client and endpoints.
 - Schemas hold Zod validation.
 - Utils hold pure helpers such as payload builders and display mapping.
-- List pages should use shared list primitives (`SearchAndFilterBar`, `Pagination`, `ResponsiveGrid`) rather than duplicating toolbar and pagination markup in each page.
+- List pages should use shared list primitives (`SearchAndFilterBar`, `SortableTableHeader`, `Pagination`, `ResponsiveGrid`) rather than duplicating toolbar, sortable header, and pagination markup in each page.
+- List pages with search, page, limit, sort, or sort-order behavior must use `useListQueryState` rather than recreating those `useState` and handler blocks in the page.
 
 Auth feature proposed structure:
 
@@ -166,6 +172,7 @@ Rules:
 - Use mock/stub API data only as a temporary development adapter; page logic and service types must match the documented contract.
 - Shared right-click menu behavior belongs in `shared/components/ContextMenu.tsx`.
 - Shared arrow-key table input focus behavior belongs in `shared/hooks/useGridInputNavigation.ts`.
+- Shared list query state behavior belongs in `shared/hooks/useListQueryState.ts`.
 
 ## State Ownership
 | State | Owner |

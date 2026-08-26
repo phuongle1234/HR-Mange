@@ -15,9 +15,14 @@ import { AppConfig } from '../../config/configuration';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AppConfig>) => ({
-        secret: configService.get('jwt.accessSecret', { infer: true }),
+        privateKey: configService.get('jwt.privateKey', { infer: true }),
+        publicKey: configService.get('jwt.publicKey', { infer: true }),
         signOptions: {
+          algorithm: 'RS256',
           expiresIn: configService.get('jwt.accessExpiresIn', { infer: true }),
+        },
+        verifyOptions: {
+          algorithms: ['RS256'],
         },
       }),
     }),

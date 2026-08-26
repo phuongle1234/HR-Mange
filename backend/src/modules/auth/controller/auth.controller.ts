@@ -26,8 +26,7 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: CurrentUserPayload) {
-    const result = await this.authService.getCurrentUser(user.id);
-    return ResponseHelper.success({ data: result, message: 'Current user retrieved successfully.' });
+    return ResponseHelper.success({ data: user, message: 'Current user retrieved successfully.' });
   }
 
   @Post('logout')

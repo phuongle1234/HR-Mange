@@ -21,10 +21,13 @@
     "@reduxjs/toolkit": "^2.12.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.101.4",
+    "@types/lodash.debounce": "^4.0.9",
     "@xyflow/react": "^12.11.3",
     "axios": "^1.19.0",
+    "lodash.debounce": "^4.0.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-draggable": "^4.7.1",
     "react-hook-form": "^7.85.0",
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.18.2",
@@ -33,6 +36,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.5",

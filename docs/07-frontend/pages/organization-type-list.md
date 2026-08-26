@@ -39,11 +39,17 @@ src/features/organization-type/hooks/useDeleteOrganizationTypesMutation.ts
 src/features/organization-type/utils/query-keys.ts
 src/store/organizationTypeSelection/organizationTypeSelectionSlice.ts
 src/shared/components/ContextMenu.tsx
+src/shared/components/SearchAndFilterBar.tsx
+src/shared/components/SortableTableHeader.tsx
+src/shared/hooks/useDebounce.ts
+src/shared/hooks/useListQueryState.ts
 ```
 
 ## Responsibilities
 This spec owns:
 - Render searchable, paginated organization type table.
+- Let the user change page size through the shared toolbar limit selector.
+- Let the user sort supported columns through the shared sortable table-header control.
 - Manage checked row ids locally until the user chooses Update.
 - Store checked ids in Redux only when navigating to the bulk update page.
 - Open a reusable context menu from right-click.
@@ -71,7 +77,7 @@ Endpoint references:
 | State | Owner | Notes |
 | --- | --- | --- |
 | List data | TanStack Query | Query key `['organization-types', queryState]`. |
-| Search/page/sort state | Local React state | Reset page to `1` when search changes. |
+| Search/page/limit/sort state | `useListQueryState` | Reset page to `1` when search, limit, or sort changes. |
 | Checked ids on list | Local React state | Do not store in Redux while merely checking rows. |
 | Checked ids for update handoff | Redux Toolkit | Store under dedicated key `organization_type_checked` right before navigating to update page. |
 | Delete confirm popup state | Local React state | Open only when selected ids exist. |
@@ -87,6 +93,26 @@ Columns:
 | `description` | API data | Render `-` when null. |
 | `createdAt` | API data | Localized display. |
 | `updatedAt` | API data | Localized display. |
+
+Sortable columns:
+- `name`
+- `createdAt`
+- `updatedAt`
+
+Non-sortable columns:
+- checkbox
+- `description`
+
+Sort behavior:
+- Sortable headers use shared `SortableTableHeader`.
+- Ascending state shows the up caret icon active.
+- Descending state shows the down caret icon active.
+- Clicking the active sortable header toggles `asc`/`desc`.
+- Clicking a different sortable header changes `sortBy` and starts with `asc`.
+- Sorting resets `page` to `1`.
+- The table `thead` stays sticky at the top of the scroll container during vertical scroll.
+- The list query calls `useOrganizationTypesQuery({ page, limit, sortBy, sortOrder, search: useDebounce(search, 500) })`.
+- Do not recreate the shared list query state handlers inside this page.
 
 Loading and empty states must render inside valid table structure:
 
@@ -130,6 +156,12 @@ Clear local checked ids
 ## Loading State
 - Query loading renders `LoadingState` inside table body.
 - Delete mutation pending disables context menu delete action and confirm buttons.
+- Delete confirmation uses shared `ConfirmDialog`; the dialog can be dragged by its header area and closes on outside click when no mutation is pending.
+
+## Toolbar
+- The toolbar uses shared `SearchAndFilterBar`.
+- The toolbar includes a limit selector using shared options `10`, `20`, `50`, and `100`.
+- Changing limit resets `page` to `1` and updates the list query.
 
 ## Empty State
 - Empty list renders `EmptyState`.

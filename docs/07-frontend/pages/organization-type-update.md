@@ -34,10 +34,12 @@ Route-level decisions:
 src/features/organization-type/pages/OrganizationTypeUpdatePage.tsx
 src/features/organization-type/hooks/useOrganizationTypesByIdsQuery.ts
 src/features/organization-type/hooks/useUpdateOrganizationTypesMutation.ts
+src/features/organization-type/utils/organization-type-form.ts
 src/store/organizationTypeSelection/organizationTypeSelectionSlice.ts
 src/shared/components/ContextMenu.tsx
 src/shared/hooks/useGridInputNavigation.ts
 src/shared/components/FullPageLoadingOverlay.tsx
+src/shared/components/ConfirmDialog.tsx
 ```
 
 ## Responsibilities
@@ -109,6 +111,13 @@ Columns:
 
 The `id` field is hidden form data, not editable.
 
+Page action bar:
+- `Cancel` navigates back to `/organizations/types`.
+- `Submit` runs React Hook Form validation and opens the confirm dialog when valid.
+- Submit is disabled while the form is invalid or the update mutation is pending.
+
+The editable table may scroll horizontally/vertically inside its container without leaving the form page.
+
 ## Context Menu
 Open source:
 - `onContextMenu` on the table-form container.
@@ -151,6 +160,7 @@ Redirect to /organizations/types
 ## Loading State
 - Initial query loading renders page-level loading state.
 - Mutation pending renders full-page loading overlay and disables actions.
+- Confirm dialog can be dragged by its header area and closes on outside click when the update mutation is not pending.
 
 ## Error State
 - Query error renders page-level `ErrorState` with retry when safe.

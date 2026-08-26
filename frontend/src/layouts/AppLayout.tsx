@@ -76,13 +76,9 @@ function UserMenu() {
   const navigate = useNavigate();
 
   const initials = currentUser?.fullName
-    ? currentUser.fullName
-        .split(' ')
-        .map((part) => part.charAt(0))
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
-    : '?';
+                  ? currentUser.fullName.split(' ').map((part) => part.charAt(0)).slice(0, 2).join('').toUpperCase()
+                  : '?';
+
   async function handleLogout() {
     setIsOpen(false);
     await logout();
@@ -103,10 +99,7 @@ function UserMenu() {
         </span>
       </button>
       {isOpen && (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-2 shadow-soft"
-        >
+        <div role="menu" className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-2 shadow-soft">
           <Link
             to="/change-password"
             role="menuitem"
@@ -173,7 +166,7 @@ export function AppLayout() {
       <Sidebar activeKey={handle.sidebarActiveKey} />
       <div className="flex min-w-0 flex-col">
         <Navbar handle={handle} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-2 sm:p-6 lg:p-4">
           {handle.breadcrumb && <Breadcrumb items={handle.breadcrumb} />}
           <Outlet />
         </main>

@@ -69,7 +69,11 @@ export function OrganizationTypeCreatePage() {
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 p-4">
                 <p className="text-sm font-bold text-slate-500">Create one or more organization type rows.</p>
-                <Button type="submit" disabled={!isValid || createMutation.isPending}>Submit</Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" onClick={() => navigate('/organizations/types')}>Cancel</Button>
+                  <Button type="button" variant="secondary" onClick={() => append({ name: '', description: '' })}>Add Row</Button>
+                  <Button type="submit" disabled={!isValid || createMutation.isPending}>Submit</Button>
+                </div>
               </div>
               <div className="overflow-auto">
                 <table className="w-full text-left">
@@ -92,11 +96,7 @@ export function OrganizationTypeCreatePage() {
                 </table>
               </div>
             </section>
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={() => navigate('/organizations/types')}>Cancel</Button>
-              <Button type="button" variant="secondary" onClick={() => append({ name: '', description: '' })}>Add Row</Button>
-              <Button type="submit" disabled={!isValid || createMutation.isPending}>Submit</Button>
-            </div>
+
           </form>
         )}
       </ContextMenu>

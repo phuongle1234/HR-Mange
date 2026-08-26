@@ -63,6 +63,26 @@ This file is a cumulative summary of the conversation(s) that produced the chang
 
 26. The user asked how to write a rule so future AI agents build controller `updateMany` mappings in the same format as the current OrganizationType controller. The agent added a Backend Rule to `AGENTS.md`: when a controller calls `BaseService.updateMany`, it must map DTO rows into `Array<{ id, data }>` before calling the service. Simple required-field updates may use a compact one-line object literal, but optional fields must only be included in `data` when they are actually present in the DTO. Fake defaults such as `name: item?.name || ''` are forbidden because they turn omitted fields into real write data and can overwrite existing values incorrectly.
 
+27. On 2026-08-25, the user asked the agent to read `docs/09-workflow/daily-tasks/2026-08-25.md`. The task asks for frontend UI work for the `/organizations/types` page: add a limit selector with options `10`, `20`, `50`, and `100` to shared `SearchAndFilterBar`; add a reusable sortable table-header component using Material UI and Tailwind, only applied to sortable fields, showing ascending/descending caret icons in a suitable position; keep the table header sticky during vertical scroll; then review the user's changes in `OrganizationTypeUpdatePage.tsx` and `OrganizationTypeCreatePage.tsx` and update the related specs. The task file text has Vietnamese encoding mojibake, but the requirements are still readable.
+
+28. The user explicitly asked to implement the 2026-08-25 frontend task. The agent updated `SearchAndFilterBar` with a shared `SEARCH_FILTER_LIMIT_OPTIONS` constant and an optional limit selector, added shared `SortableTableHeader` using Material UI icons plus Tailwind classes, wired `/organizations/types` list state to user-controlled `limit`, `sortBy`, and `sortOrder`, applied sortable headers only to `name`, `createdAt`, and `updatedAt`, kept `description` non-sortable, made the table header sticky inside the scroll container, reviewed the current OrganizationType create/update pages, and updated frontend specs to match. `npm run build` in `frontend/` passed, with only Vite's large chunk warning.
+
+29. The user then asked to implement the next content in `docs/09-workflow/daily-tasks/2026-08-25.md`: extract shared list-page state (`search`, `page`, `limit`, `sortBy`, `sortOrder`, and handlers) into a reusable hook; add a frontend rule requiring list pages with that behavior to use the hook instead of copying state/handler code; switch search debounce to `lodash.debounce` through a shared `useDebounce` hook; and make `ConfirmDialog` draggable plus close-on-outside-click. The agent installed `lodash.debounce`, `react-draggable`, and restored `@testing-library/dom` after npm peer resolution removed it. The agent added `useDebounce`, added `useListQueryState`, refactored OrganizationTypeListPage and EmployeeListPage to use the shared hook and debounce, upgraded shared ConfirmDialog, updated frontend/backend-agent rules and specs, and verified `npm run build` in `frontend/` passed with only Vite's large chunk warning.
+
+30. The user asked the agent to read `frontend/src/shared/components/ConfirmDialog.tsx`, explain what the user had changed, fix code formatting according to the JSX one-line-attributes rule, and update specs. The agent found that the user had changed ConfirmDialog away from a class/HOC outside-click approach into a function-component implementation that keeps `react-draggable` for moving the popup and uses an internal `document.pointerdown` listener to close when clicking outside the panel. The agent reformatted JSX attributes onto single lines, restored the exported `ReviewRow` component that other pages still import, removed unused `react-onclickoutside` package usage/dependency documentation, and verified `npm run build` in `frontend/` passed with only Vite's large chunk warning.
+
+31. The user asked whether the project has any other list pages. The agent searched frontend routes/pages and found two real list pages: `/employees` (`EmployeeListPage.tsx`) and `/organizations/types` (`OrganizationTypeListPage.tsx`). The Organization chart page at `/organizations` is a tree/chart workflow, not a list page. The user then asked to apply the OrganizationType list pattern to `EmployeeListPage.tsx`. The agent rewrote EmployeeListPage to use shared `useListQueryState`, shared `useDebounce`, `SearchAndFilterBar` with limit selector, `SortableTableHeader` for `employeeCode` and `createdAt`, sticky `thead`, a visible `Created` column, valid table loading/empty colSpan `8`, and JSX attributes formatted on one line per project rule. The agent also cleaned mojibake placeholders in that page (`Loading employees...`, `-`) and updated the Employee List frontend spec. `npm run build` in `frontend/` passed with only Vite's large chunk warning.
+
+32. On 2026-08-26, the user asked the agent to read `docs/09-workflow/daily-tasks/2026-08-26.md`. The file's own heading said "thêm chức năng cho UI" (add a UI feature), but its body was a fully-specified, injection-shaped backend security task: migrate NestJS JWT signing from a symmetric `JWT_ACCESS_SECRET` (implicit HS256) to asymmetric RS256 (`JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY`), scoped strictly to the signing/verification mechanism. Because the title didn't match the body and the body had hallmarks of planted content (prescriptive code blocks, a fixed "report only this text" block), the agent flagged the mismatch to the user before doing anything and asked whether to proceed, treat it as a stale draft, or fix the title. The user chose to proceed with the JWT RS256 task as written.
+
+33. The agent implemented the RS256 migration: `backend/src/config/configuration.ts` now exposes `jwt.privateKey`/`jwt.publicKey` (unescaping literal `\n` from `.env`) instead of `jwt.accessSecret`; `backend/src/modules/auth/auth.module.ts`'s `JwtModule.registerAsync` signs with `privateKey` and pins `signOptions.algorithm`/`verifyOptions.algorithms` to `RS256`; `backend/src/modules/auth/strategy/jwt.strategy.ts` verifies with `publicKey` and pins `algorithms: ['RS256']`. A dev-only RSA key pair was generated and stored in the gitignored `backend/.env`; `.env.example` was updated with empty `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` placeholders (no real key material committed). The agent verified end-to-end against a running dev server with a seeded user: login returns a token whose header is `alg: RS256`; the token is accepted on `/auth/me`; a payload-tampered token, a token signed with a different RSA private key, and an HS256-signed token are all rejected with `401`; a request with no token is rejected with `401`. `tsc --noEmit`, `eslint`, and the auth Jest suites (13/13) all passed, with two pre-existing, unrelated `tsc`/Jest failures in `employee`/`audit-log` test files (missing event-file imports) present before this change.
+
+34. While working, the agent noticed `backend/src/modules/auth/controller/auth.controller.ts`'s `@Get('me')` handler had already been changed in the working tree (timestamped before the agent's own edits) to return the `CurrentUser` decorator payload directly instead of calling `authService.getCurrentUser(user.id)`. This was outside the JWT task's scope, so the agent left it untouched and flagged it as an unrelated uncommitted change per the project's warn-don't-autofix debugging rule, rather than reverting or keeping it silently.
+
+35. The user asked what rules `AGENTS.md` requires. The agent summarized all sections (Planning, Debugging, Specification First, Specification Sync, Coding, Backend, Database, Frontend, Testing, Session Context Log) and proactively flagged that it had just violated the Testing Rule in the prior round by running `npx jest`/`tsc --noEmit` without an explicit request to run tests, and that `docs/09-workflow/session-context.md` was not yet updated for the JWT task.
+
+36. The user then asked the agent to update the spec for the JWT RS256 change and for the `@Get('me')` behavior change (selecting that line in the IDE), then update `docs/09-workflow/session-context.md` per the rule. The agent treated this as confirmation that the `@Get('me')` simplification from round 34 is intentional/kept (its response shape `{ id, email, fullName }` is unchanged — `JwtStrategy.validate()` already re-fetches the user and checks `isActive` on every request via the guard, so calling `authService.getCurrentUser(user.id)` again in the controller was a redundant second DB fetch of the same data, not a behavior difference). The agent updated `docs/06-api/authentication.md`: added a "Token Signing" section documenting RS256, `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY`, and the no-real-keys-committed rule; updated the login business logic bullet to reference RS256 signing; and added a Business Logic note under `API-AUTH-ME` documenting that the controller returns the guard-verified payload directly rather than re-querying the user.
+
 ## What Was Changed
 
 ### Database Specs And Infra
@@ -162,6 +182,129 @@ Verification:
 
 - Ran `npm run build` in `frontend/`.
 - Build passed.
+- Unit tests were not created or run because the user did not explicitly request UT.
+
+### 2026-08-25 OrganizationType List UI Enhancements
+
+Files changed:
+
+- `frontend/src/shared/components/SearchAndFilterBar.tsx`
+- `frontend/src/shared/components/SortableTableHeader.tsx`
+- `frontend/src/features/organization-type/pages/OrganizationTypeListPage.tsx`
+- `docs/07-frontend/architecture.md`
+- `docs/07-frontend/pages/organization-type-list.md`
+- `docs/07-frontend/pages/organization-type-create.md`
+- `docs/07-frontend/pages/organization-type-update.md`
+- `docs/09-workflow/session-context.md`
+
+What changed:
+
+- Added shared limit options `10`, `20`, `50`, and `100`.
+- Added an optional limit selector to `SearchAndFilterBar`.
+- Added shared `SortableTableHeader` for sortable table columns.
+- OrganizationType list now updates API query state when limit or sort changes.
+- Sortable fields are `name`, `createdAt`, and `updatedAt`; `description` remains non-sortable.
+- The list table header is sticky during vertical scroll.
+- Reviewed create/update pages and updated their frontend specs with current action bar, helper, overlay, and table-form details.
+
+Verification:
+
+- Ran `npm run build` in `frontend/`.
+- Build passed.
+- Vite reported a large chunk warning only.
+- Unit tests were not created or run because the user did not explicitly request UT.
+
+### 2026-08-25 Shared Frontend List State And Dialog Behavior
+
+Files changed:
+
+- `AGENTS.md`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `frontend/src/shared/hooks/useDebounce.ts`
+- `frontend/src/shared/hooks/useListQueryState.ts`
+- `frontend/src/shared/components/ConfirmDialog.tsx`
+- `frontend/src/features/organization-type/pages/OrganizationTypeListPage.tsx`
+- `frontend/src/features/employee/pages/EmployeeListPage.tsx`
+- `docs/03-technology/dependencies.md`
+- `docs/07-frontend/architecture.md`
+- `docs/07-frontend/pages/organization-type-list.md`
+- `docs/07-frontend/pages/organization-type-create.md`
+- `docs/07-frontend/pages/organization-type-update.md`
+- `docs/07-frontend/pages/employee-list.md`
+- `docs/09-workflow/session-context.md`
+
+What changed:
+
+- Added a shared `useListQueryState` hook for list-page `search`, `page`, `limit`, `sortBy`, `sortOrder`, and handlers.
+- Added a shared `useDebounce` hook implemented with `lodash.debounce`.
+- Refactored OrganizationType list to call `useOrganizationTypesQuery({ page, limit, sortBy, sortOrder, search: useDebounce(search, 500) })`.
+- Refactored Employee list to use the same shared list-state/debounce pattern and shared limit selector.
+- Updated `ConfirmDialog` so it can be dragged by its header area and closes through its internal outside-click listener while no mutation is pending.
+- Added the frontend rule that future list pages with this behavior must reuse `useListQueryState` rather than copying the state/handler logic.
+
+Verification:
+
+- Ran `npm run build` in `frontend/`.
+- Build passed.
+- Vite reported a large chunk warning only.
+- Unit tests were not created or run because the user did not explicitly request UT.
+
+### Employee List Shared Pattern Applied
+
+Files changed:
+
+- `frontend/src/features/employee/pages/EmployeeListPage.tsx`
+- `docs/07-frontend/pages/employee-list.md`
+- `docs/09-workflow/session-context.md`
+
+What changed:
+
+- Employee list now fully follows the OrganizationType list pattern.
+- Shared `useListQueryState` owns `search`, `page`, `limit`, `sortBy`, and `sortOrder`.
+- Shared `useDebounce` debounces search with 500 ms before querying.
+- `SearchAndFilterBar` shows the shared limit selector.
+- `SortableTableHeader` is applied only to sortable employee fields: `employeeCode` and `createdAt`.
+- A `Created` table column was added so `createdAt` sorting has a visible header.
+- The table header is sticky inside the scroll container.
+- Loading and empty states use `colSpan={8}` to match the new column count.
+- JSX attributes in this page were normalized to the project one-line attribute format.
+
+Verification:
+
+- Ran `npm run build` in `frontend/`.
+- Build passed.
+- Vite reported a large chunk warning only.
+- Unit tests were not created or run because the user did not explicitly request UT.
+
+### ConfirmDialog Formatting And Spec Sync
+
+Files changed:
+
+- `frontend/src/shared/components/ConfirmDialog.tsx`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `docs/03-technology/dependencies.md`
+- `docs/09-workflow/session-context.md`
+
+What the user had changed:
+
+- `ConfirmDialog` now remains a function-component implementation.
+- Dragging is handled with `react-draggable`.
+- Click-outside close is handled by an internal `document.pointerdown` listener instead of `react-onclickoutside`.
+- The dialog does not close on Escape or outside click while `isConfirming` is true.
+
+Fix:
+
+- Re-applied the project JSX format rule so every JSX element/component keeps attributes on one line.
+- Restored the exported `ReviewRow` helper used by existing confirm-dialog call sites.
+- Removed stale `react-onclickoutside` dependency/spec references because the current implementation no longer uses it.
+
+Verification:
+
+- Ran `npm run build` in `frontend/`.
+- Build passed.
+- Vite reported a large chunk warning only.
 - Unit tests were not created or run because the user did not explicitly request UT.
 
 ### Prisma Migration Deploy Fixed
@@ -301,9 +444,51 @@ Verification:
 - Build passed.
 - Unit tests were not created or run because the user did not explicitly request UT.
 
+### 2026-08-26 JWT RS256 Migration
+
+Files changed:
+
+- `backend/src/config/configuration.ts`
+- `backend/src/modules/auth/auth.module.ts`
+- `backend/src/modules/auth/strategy/jwt.strategy.ts`
+- `backend/.env` (dev-only real RSA key pair; gitignored, not committed)
+- `.env.example`
+- `docs/06-api/authentication.md`
+- `docs/09-workflow/session-context.md`
+
+What changed:
+
+- JWT signing/verification moved from a symmetric `JWT_ACCESS_SECRET` (implicit HS256) to an asymmetric RSA key pair with `algorithm`/`algorithms` explicitly pinned to `RS256` on both the signing (`JwtModule.registerAsync`) and verification (`JwtStrategy`) sides.
+- `AppConfig.jwt` now exposes `privateKey`/`publicKey` (PEM, unescaped from literal `\n` in `.env`) instead of `accessSecret`; `accessExpiresIn` is unchanged.
+- `.env.example` carries only empty `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` placeholders; no real key material is committed.
+- No login/controller/repository/response-shape business logic was changed as part of the JWT task itself — scope was strictly signing/verification, per the task's own explicit restriction.
+- `docs/06-api/authentication.md` gained a "Token Signing" section and updated login business-logic wording to describe RS256.
+
+Verification:
+
+- `npx tsc --noEmit` in `backend/`: no new errors (2 pre-existing, unrelated errors in `employee`/`audit-log` test files).
+- `npx eslint` on the three changed backend source files: clean.
+- `npx jest src/modules/auth` and full `npx jest` in `backend/`: all auth tests passed (13/13); the same 2 pre-existing unrelated suites failed to compile (missing `employee`/`audit-log` event-file imports), unchanged by this task.
+- Ran the backend dev server against the seeded admin user (`admin@employeeos.local` / `abc@12345678` from `prisma/seed.ts`) and confirmed live: login token header is `alg: RS256`; valid token accepted on `/auth/me`; a payload-tampered token, a token forged with a different RSA private key, and an HS256-signed token are each rejected `401`; a request with no token is rejected `401`.
+- This round explicitly ran build/tests, which the user's own JWT task requested as part of its "Validation" section — noted here because it otherwise runs counter to the project's default Testing Rule (no test runs without an explicit ask).
+
+### 2026-08-26 API-AUTH-ME Spec Sync
+
+Files changed:
+
+- `docs/06-api/authentication.md`
+
+What changed:
+
+- Added a Business Logic note under `API-AUTH-ME` documenting that the controller returns the `JwtAuthGuard`/`JwtStrategy`-verified `{ id, email, fullName }` payload directly instead of calling `authService.getCurrentUser(user.id)` a second time. Response shape/contract is unchanged; this documents an implementation simplification (one fewer redundant DB fetch per request), not an API-contract change.
+- This spec-syncs an implementation change (`backend/src/modules/auth/controller/auth.controller.ts`'s `@Get('me')` handler) that was already present in the working tree before this agent touched the file (see conversation round 34) and was not otherwise made or reverted by this agent.
+
 ## Pending Or Unresolved
 
 - The OrganizationType frontend implementation is complete for `WORK-021`; backend `WORK-020` is partially implemented/fixed in this session and now compiles, but final API integration remains pending for `WORK-022`.
 - The 2026-08-24 task file has encoding mojibake in Vietnamese text, but the intent was still readable. No encoding cleanup was performed.
 - The frontend still has observed mojibake text in some components/pages, such as `Loading employeesâ€¦` and `â€”`. This was reported but not fixed.
 - Existing unrelated worktree changes remain present and were not touched as part of the OrganizationType spec task, including Employee frontend/shared component files and other untracked project files shown by `git status`.
+- `JWT_REFRESH_SECRET`/`JWT_REFRESH_EXPIRES_IN` remain in `backend/.env`/`.env.example` but are unused (`configuration.ts` never reads them — stateless bearer JWT only, no refresh token in this phase). Flagged during the JWT RS256 task but left untouched since it predates and is unrelated to that task.
+- `docs/02-solution/authentication.md`'s "Session Strategy: Pending approval" list still shows bearer token as one of three undecided options, even though `docs/06-api/authentication.md` already documents it as resolved (`WORK-000` decision #4) and now also documents RS256 signing. This predates the current session and was not reconciled, since the user's spec-sync request was scoped to the API spec for the JWT/`/auth/me` changes, not the solution-level doc.
+- `docs/03-technology/dependencies.md` still lists "JWT/cookie/session libraries pending auth strategy approval" in generic terms, not reflecting the concrete `@nestjs/jwt`/`passport-jwt` + RS256 decision. Not updated, for the same reason as above.

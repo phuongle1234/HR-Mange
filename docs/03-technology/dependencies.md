@@ -30,6 +30,8 @@ Track required dependency categories before implementation.
 - Zod.
 - `@hookform/resolvers`.
 - `react-toastify`.
+- `lodash.debounce`.
+- `react-draggable`.
 - Tailwind CSS.
 
 ## Testing Dependencies

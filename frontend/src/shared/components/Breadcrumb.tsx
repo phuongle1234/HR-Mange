@@ -3,7 +3,7 @@ import type { BreadcrumbItem } from '../../routes/route.types';
 
 export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 text-xs font-bold text-slate-500">
+    <nav aria-label="Breadcrumb" className="mb-2 text-xs font-bold text-slate-500">
       {items.map((item, index) => (
         <span key={`${item.label}-${index}`}>
           {item.to ? (

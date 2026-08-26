@@ -21,6 +21,12 @@ Define authentication endpoints for login, session validation, logout, password 
 - The frontend sends it on every subsequent request via `Authorization: Bearer <token>`.
 - There is no refresh token / refresh endpoint in this phase — when the access token expires, the frontend redirects to `/login`.
 
+## Token Signing
+- Algorithm: `RS256` (asymmetric RSA key pair). `HS256` tokens, or any algorithm other than `RS256`, are rejected — signing and verification both pin `algorithm`/`algorithms` explicitly rather than trusting a default.
+- Signing (`POST /api/auth/login`) uses `JWT_PRIVATE_KEY`; verification (`JwtAuthGuard`/`JwtStrategy`, applied to every `Auth: required` endpoint above) uses `JWT_PUBLIC_KEY`. Both are PEM values stored in `.env`/`.env.example` with literal `\n` newline escapes and unescaped at config-load time.
+- Real key material must never be committed; `.env.example` holds only empty placeholders for `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY`.
+- Token payload (`sub`, `email`) remains readable/decodable — RS256 guarantees only that a token was signed by the holder of `JWT_PRIVATE_KEY`, not payload confidentiality.
+
 ## Endpoint Summary
 | ID | Method | URL | Auth | Purpose |
 | --- | --- | --- | --- | --- |
@@ -50,7 +56,7 @@ DTO:
 - Find user by email.
 - Verify password with `bcrypt.compare`.
 - Reject if `isActive` is `false`.
-- Sign a JWT access token (`JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN` from `.env.example`).
+- Sign a JWT access token with `JWT_PRIVATE_KEY` (`algorithm: RS256`, `expiresIn: JWT_ACCESS_EXPIRES_IN`) — see [Token Signing](#token-signing).
 - Update `lastLoginAt`.
 - Return the token and safe user fields in the response body.
 
@@ -85,6 +91,9 @@ Success status: `200 OK`.
 GET /api/auth/me
 ```
 Auth: required.
+
+### Business Logic
+- No additional service-layer lookup: `JwtAuthGuard`/`JwtStrategy.validate()` already re-fetches the user by `sub` and re-checks `isActive` on every request (see Security Rules above), so the controller returns that already-verified `{ id, email, fullName }` payload directly instead of querying the user a second time.
 
 ### Response
 Success status: `200 OK`.

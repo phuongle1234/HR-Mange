@@ -53,6 +53,9 @@ Page responsibilities:
 | `useQuery()` + `employeeApiService.list(queryState)` | Fetch `GET /api/employees`. |
 | `useDeleteEmployeeMutation()` | Submit `DELETE /api/employees/:id`. |
 | `SearchAndFilterBar` | Shared search input + optional custom filter slot + create action. |
+| `SortableTableHeader` | Shared sortable header for sortable columns only. |
+| `useListQueryState` | Shared search/page/limit/sort state and handlers. |
+| `useDebounce` | Debounced search value for API query input, implemented with `lodash.debounce`. |
 | `Pagination` | Shared list pagination UI built on MUI `Pagination`, with page conversion from app 1-based indexing to MUI's 0-based page index. |
 | `ResponsiveGrid` | Shared reusable layout grid for list/filter toolbars. |
 | `useSearchParams()` | Optional sync for page/search/filter query params; not required for the current implementation. |
@@ -69,7 +72,7 @@ Page responsibilities:
 | --- | --- | --- |
 | Auth state | `AuthProvider` / Redux global state | Page reads through `useAuth()`. |
 | Permission state | Not implemented | There is no `PermissionProvider` and no permission checks in this phase. |
-| Search/filter/page state | Local state | The current implementation keeps search/filter/page state in React local state and resets page to 1 on filter changes. |
+| Search/filter/page/limit/sort state | `useListQueryState` plus local status state | Shared hook owns common list state; status filter remains page-specific local state and resets page to `1` on change. |
 | Employee list data | TanStack Query | Server state, not Redux. |
 | Delete confirm popup state | Local state | Stores selected employee for confirmation. |
 | Selected delete employee | Local state | Holds the row employee being reviewed in the popup. |
@@ -96,7 +99,28 @@ Current query-state fields:
 
 There is no `departmentId` filter — Department was removed from scope (`WORK-000` decision #1).
 
-The toolbar is built with the shared `SearchAndFilterBar` component, which accepts a custom filter slot for the status select and keeps the search field generic across list pages.
+The toolbar is built with the shared `SearchAndFilterBar` component, which accepts a custom filter slot for the status select, includes the shared limit selector, and keeps the search field generic across list pages.
+
+The page must use `useListQueryState` for shared `search`, `page`, `limit`, `sortBy`, and `sortOrder` behavior. Search sent to the API is debounced with `useDebounce(search, 500)`.
+
+Sortable columns:
+- `employeeCode`
+- `createdAt`
+
+Non-sortable columns:
+- full name
+- email
+- phone
+- position
+- status
+- actions
+
+Sort behavior:
+- Sortable headers use shared `SortableTableHeader`.
+- Clicking the active sortable header toggles `asc`/`desc`.
+- Clicking a different sortable header changes `sortBy` and starts with `asc`.
+- Sorting resets `page` to `1`.
+- The table `thead` stays sticky at the top of the scroll container during vertical scroll.
 
 ## Table Rendering Pattern
 The current implementation renders list semantics inside a valid HTML table structure:
@@ -105,17 +129,17 @@ The current implementation renders list semantics inside a valid HTML table stru
 <table>
   <thead>...</thead>
   <tbody>
-    {isLoading && (
+        {isLoading && (
       <tr>
-        <td colSpan={7}>
-          <LoadingState label="Loading employees…" />
+        <td colSpan={8}>
+          <LoadingState label="Loading employees..." />
         </td>
       </tr>
     )}
 
     {!isLoading && employees.length === 0 && (
       <tr>
-        <td colSpan={7}>
+        <td colSpan={8}>
           <EmptyState label="No employees found." />
         </td>
       </tr>
@@ -154,6 +178,8 @@ On error:
 | `handleSearchChange(value)` | Update local search value; debounce behavior pending approval. |
 | `handleFilterChange(field, value)` | Update filter state and reset page to first page. |
 | `handlePageChange(page)` | Update current page. |
+| `handleLimitChange(limit)` | Update page size through `useListQueryState` and reset page to first page. |
+| `handleSortChange(field)` | Update sortable field/order through `useListQueryState` and reset page to first page. |
 | `handleCreate()` | Navigate to `/employees/create`. |
 | `handleView(employeeId)` | Navigate to `/employees/:id`. |
 | `handleEdit(employeeId)` | Navigate to `/employees/:id/edit`. |

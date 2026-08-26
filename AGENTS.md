@@ -99,6 +99,8 @@ Database design must be specified before Prisma schema and migration. Do not add
 ## Frontend Rules
 React uses React Router, Redux Toolkit, TanStack Query, and Axios. Redux is for global client state, TanStack Query is for server state, and local React state is for UI state. API URLs must be declared centrally, not inside components.
 
+List pages with search, page, limit, sort, or sort-order behavior must use the shared list query hook (e.g. `useListQueryState`) instead of recreating local `useState`/handler logic in the page. If a future list page needs the same behavior with a small variation, extend the shared hook generically rather than copying the hook's internals into the page.
+
 JSX elements: write every element's attributes on one line (`<button className="..." aria-haspopup="menu" aria-expanded={isOpen} type="button" onClick={...} >`), not one attribute per line, regardless of how many props it takes. This applies to every element/component, not just `<button>` — plain HTML tags and custom components alike. Let the line wrap naturally/stay long rather than breaking each prop onto its own line.
 
 ## Testing Rules

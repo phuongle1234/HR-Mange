@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -7,7 +7,9 @@ import { ContextMenu } from '../../../shared/components/ContextMenu';
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/components/PageStates';
 import { Pagination } from '../../../shared/components/Pagination';
 import { SearchAndFilterBar } from '../../../shared/components/SearchAndFilterBar';
-import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
+import { SortableTableHeader } from '../../../shared/components/SortableTableHeader';
+import { useDebounce } from '../../../shared/hooks/useDebounce';
+import { useListQueryState } from '../../../shared/hooks/useListQueryState';
 import { setOrganizationTypeCheckedIds } from '../../../store/organizationTypeSelection/organizationTypeSelectionSlice';
 import type { FrontendApiError } from '../../../shared/api/api-error';
 import { useDeleteOrganizationTypesMutation } from '../hooks/useDeleteOrganizationTypesMutation';
@@ -15,7 +17,8 @@ import { useOrganizationTypesQuery } from '../hooks/useOrganizationTypesQuery';
 import type { OrganizationType, OrganizationTypeListQueryState } from '../types/organization-type.types';
 
 const DEFAULT_PAGE_SIZE = 10;
-const SEARCH_DEBOUNCE_MS = 400;
+const SEARCH_DEBOUNCE_MS = 500;
+type OrganizationTypeSortField = OrganizationTypeListQueryState['sortBy'];
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
@@ -24,15 +27,11 @@ function formatDate(value: string): string {
 export function OrganizationTypeListPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [searchInput, setSearchInput] = useState('');
-  const [page, setPage] = useState(1);
+  const { search, page, limit, sortBy, sortOrder, setPage, handleSearchChange, handleLimitChange, handleSortChange } = useListQueryState<OrganizationTypeSortField>({ defaultLimit: DEFAULT_PAGE_SIZE, defaultSortBy: 'createdAt', defaultSortOrder: 'desc' });
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deleteConfirmError, setDeleteConfirmError] = useState<string | null>(null);
-  const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
-
-  const queryState: OrganizationTypeListQueryState = useMemo(() => ({ page, limit: DEFAULT_PAGE_SIZE, search: debouncedSearch, sortBy: 'createdAt', sortOrder: 'desc' }), [page, debouncedSearch]);
-  const organizationTypesQuery = useOrganizationTypesQuery(queryState);
+  const organizationTypesQuery = useOrganizationTypesQuery({ page, limit, sortBy, sortOrder, search: useDebounce(search, SEARCH_DEBOUNCE_MS) });
   const deleteMutation = useDeleteOrganizationTypesMutation();
 
   const items = organizationTypesQuery.data?.items ?? [];
@@ -40,11 +39,6 @@ export function OrganizationTypeListPage() {
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
   const visibleIds = items.map((item) => item.id);
   const allVisibleChecked = visibleIds.length > 0 && visibleIds.every((id) => checkedIds.includes(id));
-
-  function handleSearchChange(value: string) {
-    setSearchInput(value);
-    setPage(1);
-  }
 
   function toggleAllVisible() {
     if (allVisibleChecked) {
@@ -88,21 +82,21 @@ export function OrganizationTypeListPage() {
 
   return (
     <div>
-      <p className="mb-4 text-sm text-slate-500">Search, select, and manage organization type records.</p>
+      <p className="mb-2 text-sm text-slate-500">Search, select, and manage organization type records.</p>
       <ContextMenu items={[{ key: 'create', label: 'Create', onSelect: () => navigate('/organizations/types/create') }, { key: 'update', label: 'Update', disabled: checkedIds.length === 0, onSelect: handleUpdateSelected }, { key: 'delete', label: 'Delete', disabled: checkedIds.length === 0 || deleteMutation.isPending, danger: true, onSelect: () => setIsDeleteConfirmOpen(true) }]}>
         {({ onContextMenu }) => (
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm" onContextMenu={onContextMenu}>
-            <SearchAndFilterBar searchValue={searchInput} onSearchChange={handleSearchChange} searchPlaceholder="Search by name or description" createLabel="Create Type" onCreate={() => navigate('/organizations/types/create')} />
+            <SearchAndFilterBar searchValue={search} onSearchChange={handleSearchChange} searchPlaceholder="Search by name or description" createLabel="Create Type" onCreate={() => navigate('/organizations/types/create')} limitValue={limit} onLimitChange={handleLimitChange} />
             {organizationTypesQuery.isError && <ErrorState message="Unable to load organization types. Please try again." onRetry={() => organizationTypesQuery.refetch()} />}
-            <div className="h-[calc(100vh-380px)] min-h-[240px] overflow-auto">
+            <div className="h-[calc(100vh-290px)] overflow-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50">
+                <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
                   <tr>
                     <th className="w-12 px-4 py-3"><input type="checkbox" aria-label="Check all organization types" checked={allVisibleChecked} onChange={toggleAllVisible} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" /></th>
-                    <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Name</th>
+                    <th className="px-4 py-3"><SortableTableHeader field="name" label="Name" activeField={sortBy} sortOrder={sortOrder} onSortChange={handleSortChange} /></th>
                     <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Description</th>
-                    <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Created</th>
-                    <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Updated</th>
+                    <th className="px-4 py-3"><SortableTableHeader field="createdAt" label="Created" activeField={sortBy} sortOrder={sortOrder} onSortChange={handleSortChange} /></th>
+                    <th className="px-4 py-3"><SortableTableHeader field="updatedAt" label="Updated" activeField={sortBy} sortOrder={sortOrder} onSortChange={handleSortChange} /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -120,7 +114,7 @@ export function OrganizationTypeListPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={meta?.page || 1} totalPages={totalPages} total={meta?.total || 0} limit={meta?.limit || DEFAULT_PAGE_SIZE} itemLabel="organization types" onPageChange={(nextPage) => setPage(nextPage)} />
+            <Pagination page={meta?.page || 1} totalPages={totalPages} total={meta?.total || 0} limit={meta?.limit || limit} itemLabel="organization types" onPageChange={(nextPage) => setPage(nextPage)} />
           </div>
         )}
       </ContextMenu>

@@ -1,9 +1,11 @@
 /**
  * Central, typed access point for environment variables. Reuses the exact
  * variable names already defined in the repo-root .env.example: APP_PORT,
- * DATABASE_URL, FRONTEND_URL, JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN,
- * LOG_RETENTION_DAYS. JWT_REFRESH_* exist in the env file but are unused in
- * this phase (no refresh token - stateless bearer JWT only).
+ * DATABASE_URL, FRONTEND_URL, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY,
+ * JWT_ACCESS_EXPIRES_IN, LOG_RETENTION_DAYS. JWT_REFRESH_* exist in the env
+ * file but are unused in this phase (no refresh token - stateless bearer JWT
+ * only). JWT_PRIVATE_KEY/JWT_PUBLIC_KEY are PEM values with literal `\n`
+ * escapes (as stored in .env) and are unescaped to real newlines here.
  *
  * Nothing outside this module should read `process.env` directly.
  */
@@ -17,7 +19,8 @@ export interface AppConfig {
     url: string;
   };
   jwt: {
-    accessSecret: string;
+    privateKey: string;
+    publicKey: string;
     accessExpiresIn: string;
   };
   log: {
@@ -35,7 +38,8 @@ export default (): AppConfig => ({
     url: process.env.DATABASE_URL ?? '',
   },
   jwt: {
-    accessSecret: process.env.JWT_ACCESS_SECRET ?? '',
+    privateKey: (process.env.JWT_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
+    publicKey: (process.env.JWT_PUBLIC_KEY ?? '').replace(/\\n/g, '\n'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
   },
   log: {
