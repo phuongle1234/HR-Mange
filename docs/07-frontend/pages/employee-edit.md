@@ -1,321 +1,183 @@
-﻿---
+---
 id: FRONTEND-EMPLOYEE-EDIT
 type: frontend
 module: employee
 status: draft
 depends_on:
-  - UI-EMPLOYEE-EDIT
-  - API-EMPLOYEE-DETAIL
-  - API-EMPLOYEE-UPDATE
-  - FRONTEND-REACT-ROUTE
-  - FRONTEND-AUTH-PROVIDER
+  - API-EMPLOYEE-BY-IDS
+  - API-EMPLOYEE-BULK-UPDATE
+  - FRONTEND-EMPLOYEE-LIST
+  - FRONTEND-ARCHITECTURE
   - FRONTEND-API-CLIENT
+  - FRONTEND-STATE-MANAGEMENT
 ---
 
-# Employee Edit
+# Employee Update
 
 ## Purpose
-Define the React page-level behavior for editing an employee. Route structure, layout, route guards, and provider tree are defined in `docs/07-frontend/react-route.md` and `docs/07-frontend/providers/auth-provider.md`.
+Define the React page behavior for bulk-updating checked employee rows selected from the list page. **Superseded (2026-08-26 daily task, §5):** the previous single-record `/employees/:id/edit` page is replaced by this bulk workflow, mirroring `FRONTEND-ORGANIZATION-TYPE-UPDATE` exactly, plus the same Organization `react-select` column as `FRONTEND-EMPLOYEE-CREATE`.
 
 ## Route Reference
 ```text
-/employees/:id/edit -> EmployeeEditPage
+/employees/update -> EmployeeUpdatePage
 ```
+**Route change:** `/employees/:id/edit` (`EmployeeEditPage`, single-record) is removed. The per-row "Edit" action/route on the Employee List and Detail pages is removed along with it — bulk-select + this page is now the only way to edit employees, matching the Organization Type list/update pattern. See `FRONTEND-EMPLOYEE-LIST` for the corresponding List page changes (checkbox selection, context menu). The Employee Detail page (`/employees/:id`, read-only) is unaffected — it keeps its own route and is not part of this bulk workflow.
 
 Route-level decisions:
 - Layout: `AppLayout`.
-- Auth guard: required through `AuthProvider`.
-- Navbar title: `Edit Employee`.
-- Navbar back target: `/employees/:id`, fallback `/employees`.
+- Auth guard: required.
+- Permission model: none.
+- Navbar title: `Update Employees`.
+- Back target: `/employees`.
 
-## Page Component
+## Proposed Files
 ```text
-src/features/employee/pages/EmployeeEditPage.tsx
+src/features/employee/pages/EmployeeUpdatePage.tsx
+src/features/employee/hooks/useEmployeesByIdsQuery.ts
+src/features/employee/hooks/useBulkUpdateEmployeesMutation.ts
+src/features/employee/hooks/useOrganizationOptionsQuery.ts
+src/features/employee/components/OrganizationSelectCell.tsx
+src/store/employeeSelection/employeeSelectionSlice.ts
+src/shared/components/ContextMenu.tsx
+src/shared/hooks/useGridInputNavigation.ts
+src/shared/components/FullPageLoadingOverlay.tsx
+src/shared/components/ConfirmDialog.tsx
 ```
 
-Page responsibilities:
-- Render form described by `UI-EMPLOYEE-EDIT`.
-- Read route param `id`.
-- Fetch existing employee detail before form reset.
-- Manage form state with React Hook Form.
-- Validate form data with Zod resolver before submit.
-- Open submit confirm popup after valid submit intent.
-- Call update employee mutation only after popup confirmation.
-- Map API errors to field-level or form-level errors.
-- Invalidate employee list and detail queries after successful update.
-- Show update success with `react-toastify` at top-right.
+## Responsibilities
+This spec owns:
+- Read selected ids from Redux key `employee_checked`.
+- Fetch selected rows once through `POST /api/employees/by-ids`.
+- Prefill editable table-form rows, including each row's Organization select from `organizationId`.
+- Submit changed rows in one API call.
+- Clear selected ids after successful update or when user leaves intentionally.
 
-## Hooks
-| Hook | Purpose |
-| --- | --- |
-| `useAuth()` | Read `authStatus` and `currentUser`. |
-| `useParams()` | Read employee `id` route param. |
-| `useNavigate()` | Navigate on cancel, back, and success. |
-| `useEmployeeDetailQuery(id)` | Fetch existing employee detail. |
-| `useUpdateEmployeeMutation()` | Submit `PUT /api/employees/:id`. |
-| `useForm()` from React Hook Form | Own form values, touched state, dirty state, validation state, and submit state. |
-| `zodResolver(employeeEditSchema)` | Connect Zod schema validation to React Hook Form. |
+This spec must not own:
+- Long-term server data storage in Redux.
+- List-page local selection state.
+- Backend uniqueness or not-found rules.
+- Fetching Organization options per row (same rule as `FRONTEND-EMPLOYEE-CREATE`).
 
-## useEffect Design
-| Effect | Dependency | Purpose |
-| --- | --- | --- |
-| Auth readiness effect | `authStatus` | Avoid queries/actions until auth is authenticated. |
-| Detail-to-form reset effect | `employeeDetailQuery.data` | Call React Hook Form `reset(mappedEmployeeValues)` after detail load succeeds. |
-| Dirty form warning effect | `isDirty` | Register leave confirmation behavior if implementation requires it. |
-| Cleanup effect | unmount | Let form state clear naturally; do not clear auth, permission, or employee query cache. |
+## API Contract
+Service methods:
+
+```ts
+employeeApiService.findByIds({ ids })
+employeeApiService.bulkUpdate({ items })
+organizationApiService.list()
+```
+
+Endpoints:
+- `POST /api/employees/by-ids`
+- `PATCH /api/employees/bulk`
+- `GET /api/organizations`
 
 ## State Ownership
 | State | Owner | Notes |
 | --- | --- | --- |
-| Auth state | `AuthProvider` / Redux global state | Page reads through `useAuth()`. |
-| Employee detail data | TanStack Query | Server state used to initialize form. |
-| Form values | React Hook Form | Do not store in Redux. |
-| Field errors | React Hook Form + Zod resolver | API validation errors can be mapped with `setError`. |
-| Form-level error message | React Hook Form/root error or local UI state | Display below submit button. |
-| Submit confirm popup open state | Local React state | Open only after `handleSubmit` returns valid changed values. |
-| Pending update payload | Local React state or React Hook Form snapshot | Store normalized changed-field payload for confirmation; clear after cancel, success, or field-level API error. |
-| Changed-fields review model | Local derived state | Shows previous and new values in the popup. |
-| Confirm popup error message | Local React state or React Hook Form/root error | Show only for non-field update failure after confirmation. |
-| Update mutation status | TanStack Mutation | Use `isPending`, `isSuccess`, `isError`. |
-| Toast message | react-toastify | Success toast appears at top-right. |
+| Selected ids | Redux Toolkit | Read from `employee_checked`. |
+| Fetched selected rows | TanStack Query | Query key `['employees', 'by-ids', ids]`. |
+| Organization select options | TanStack Query | Query key `['organizations']`, shared with the Create page's fetch-once behavior. |
+| Editable form rows | React Hook Form | Reset from query result after load. |
+| Checked local row ids | Local React state | Used to remove rows from the update form only. |
+| Mutation pending state | TanStack Mutation | Drives disabled submit and full-page loading overlay. |
 
-## Query State
-Detail query:
+## Empty Selection Behavior
+If Redux has no selected ids:
 
 ```text
-useEmployeeDetailQuery(id)
-```
-
-Query key:
-
-```text
-['employees', id]
-```
-
-Enabled condition:
-
-```text
-authStatus === 'authenticated'
-&& isValidEmployeeId(id) === true
-```
-
-## Mutation State
-Mutation hook:
-
-```text
-useUpdateEmployeeMutation()
-```
-
-API service:
-
-```text
-EmployeeApiService.update(id, payload)
-```
-
-On success:
-- Invalidate `['employees']` query.
-- Invalidate or set `['employees', id]` query.
-- Show success toast with `react-toastify` at top-right.
-- Close submit confirm popup.
-- Clear pending update payload, changed-fields review model, and popup error state.
-- Navigate according to pending success rule.
-
-On error:
-- `EMPLOYEE_CODE_EXISTS`: map to `employeeCode` field.
-- `EMPLOYEE_EMAIL_EXISTS`: map to `email` field.
-- `EMPLOYEE_NOT_FOUND`: show not found/page-level error.
-- `VALIDATION_ERROR`: map field errors returned by API.
-- `UNAUTHORIZED`: clear token and redirect to `/login`.
-- For field-level errors returned after popup confirmation, close the popup and focus the first invalid field.
-- For non-field errors returned after popup confirmation, keep the popup open and show a safe form-level message inside the popup.
-
-## Form Library And Validation
-React Hook Form and Zod are required for this page.
-
-Required libraries:
-
-```text
-react-hook-form
-zod
-@hookform/resolvers/zod
-react-toastify
-```
-
-Form setup:
-
-```text
-useForm({
-  resolver: zodResolver(employeeEditSchema),
-  mode: "onBlur",
-  reValidateMode: "onChange",
-  defaultValues
-})
-```
-
-Zod schema:
-- Schema name: `employeeEditSchema`.
-- Validates optional update fields when provided.
-- Validates email format when provided.
-- Validates trim/non-empty rules where applicable.
-- Does not perform uniqueness checks; uniqueness remains API/DTO/custom validation responsibility.
-
-## Local Form State
-Track through React Hook Form:
-- `formState.errors`
-- `formState.touchedFields`
-- `formState.dirtyFields`
-- `formState.isDirty`
-- `formState.isValid`
-- `formState.isSubmitting`
-- `watch()` values when UI behavior needs current field values
-
-Track through local state:
-- `isSubmitConfirmOpen`
-- `pendingUpdatePayload`
-- `changedFieldsReview`
-- `submitConfirmError`
-
-Client validation:
-- `mode: "onBlur"` means field validation runs when the field loses focus.
-- `reValidateMode: "onChange"` means an invalid field can be revalidated while user edits it.
-- Uniqueness checks remain API/DTO/custom validation responsibility.
-
-## Handler Functions
-| Function | Responsibility |
-| --- | --- |
-| `register(field)` | React Hook Form registers field value, blur, change, and validation behavior. |
-| `handleBlur(field)` | Use React Hook Form registered `onBlur` behavior to mark field touched and trigger Zod field validation. Do not manually duplicate validation logic outside Zod. |
-| `handleSubmit(onValid, onInvalid)` | React Hook Form validates with Zod, calls `onValid` when valid, and `onInvalid` when validation fails. |
-| `onValid(values)` | Build normalized changed-field payload, build changed-fields review model, store both, clear `submitConfirmError`, and open submit confirm popup. Do not call mutation here. |
-| `handleCloseSubmitConfirm()` | Close popup and clear popup error when mutation is not pending; keep form values unchanged. |
-| `handleConfirmUpdate()` | Call `useUpdateEmployeeMutation()` with `pendingUpdatePayload`; prevent duplicate calls while mutation is pending. |
-| `handleCancel()` | Navigate to `/employees/:id` if clean; show confirm leave dialog if dirty. |
-| `handleBack()` | Same behavior as cancel/back navigation. |
-| `mapApiErrorToForm(error)` | Convert API error codes to React Hook Form `setError` calls or root/form-level error. |
-| `buildUpdateEmployeePayload(values, dirtyFields)` | Trim, normalize, and include changed values before mutation. |
-| `mapEmployeeToFormValues(employee)` | Convert detail API response to form values for `reset()`. |
-| `buildChangedFieldsReview(payload, employeeDetail)` | Build previous/new value rows for the submit confirm popup. |
-
-## Submit Confirm Popup Behavior
-The submit confirm popup is required for this page.
-
-Open flow:
-```text
-User clicks Save Changes
+Show safe page-level empty state
     ↓
-React Hook Form handleSubmit validates with Zod
-    ↓
-onValid builds normalized changed-field payload
-    ↓
-If payload is empty, show no-change feedback and do not open popup
-    ↓
-Store pendingUpdatePayload and changedFieldsReview
-    ↓
-Open submit confirm popup
+Offer button back to /employees
 ```
 
-Confirm flow:
-```text
-User clicks Confirm update
-    ↓
-Guard id and pendingUpdatePayload exist
-    ↓
-Call updateEmployeeMutation.mutateAsync({ id, payload: pendingUpdatePayload })
-    ↓
-On success, invalidate ['employees'] and ['employees', id], show toast, close popup, clear pending payload
-```
+The page must not call `findByIds` with an empty `ids` array.
 
-Cancel flow:
-```text
-User clicks Cancel or presses Escape
-    ↓
-If mutation is not pending, close popup
-    ↓
-Keep form values, dirty state, and field errors unchanged
-```
-
-Implementation requirements:
-- Use an accessible dialog/modal component from the approved UI layer if available; otherwise implement dialog semantics directly.
-- The popup receives review rows from `changedFieldsReview`.
-- Do not re-read mutable form state inside `handleConfirmUpdate`; submit the captured pending payload the user reviewed.
-- Disable popup close, Cancel, and Confirm update while `updateEmployeeMutation.isPending` is true.
-- Use `updateEmployeeMutation.isPending` for the Confirm update loading state.
-- On non-field mutation error, keep the popup open and render `submitConfirmError`.
-- On field-level mutation error, close the popup, clear pending payload, map errors with `setError`, and focus the first invalid field.
-
-## Error Message Rendering
-Field-level errors:
-- Render each field error directly under its input.
-- Use message from Zod or API error mapping.
-
-Form-level error:
-- Render root/form-level error message below the submit button.
-- Examples: unexpected API error, not found state, or unknown server error.
-- Do not render raw backend error object.
-
-Submit button area:
-
-```text
-[Save Changes button]
-[Cancel button]
-<Form-level error message below buttons when exists>
-```
-
-Submit confirm popup area:
-
-```text
-<Changed fields summary>
-[Cancel button]
-[Confirm update button]
-<Submit confirm error message when exists>
-```
-
-## Success Toast
-Use `react-toastify` after update succeeds.
-
-```text
-toast.success("Employee updated successfully.", {
-  position: "top-right"
-})
-```
-
-## Render Flow
+## Fetch Flow
 ```text
 Route guard passes
     ↓
-EmployeeEditPage mounted inside AppLayout WrapContent
+Read ids from Redux
     ↓
-Read id from route params
+POST /api/employees/by-ids
     ↓
-Fetch employee detail query when enabled
-    ↓
-Reset React Hook Form values after detail load succeeds
-    ↓
-User edits form values
-    ↓
-React Hook Form triggers Zod validation on blur and revalidation on change
-    ↓
-React Hook Form handleSubmit validates with Zod
-    ↓
-Valid submit opens submit confirm popup with changed-fields review
-    ↓
-User confirms update
-    ↓
-Update mutation calls EmployeeApiService.update(id, pendingUpdatePayload)
-    ↓
-Success invalidates employee list/detail queries
-    ↓
-Show top-right success toast
-    ↓
-Navigate or stay based on pending success decision
+Reset React Hook Form rows from returned data (organizationId included)
 ```
 
-## Cleanup
-- Local form state clears by unmount.
-- Submit confirm popup state and pending update payload clear by unmount.
-- Do not clear `['employees']` cache.
-- Do not clear `['employees', id]` unless update/delete behavior requires invalidation.
-- Do not clear auth global state.
+If the endpoint returns `EMPLOYEE_NOT_FOUND`, render a page-level error and offer navigation back to list.
 
-## Pending Decisions
-None blocking. Success navigates back to `/employees/:id`. Toast duration/styling is an implementation default.
+## Table Form Layout
+Same columns as `FRONTEND-EMPLOYEE-CREATE`'s table (`employeeCode`, `firstName`, `lastName`, `email`, `phone`, `position`, `status`, `organization` via `react-select`), prefilled from the fetched rows. The `id` field is hidden form data, not editable. `userId` is never shown/editable on this page — it is set only by the Invitation-accept flow.
+
+Page action bar:
+- `Cancel` navigates back to `/employees`.
+- `Submit` runs React Hook Form validation and opens the confirm dialog when valid.
+- Submit is disabled while the form is invalid or the update mutation is pending.
+
+The editable table may scroll horizontally/vertically inside its container without leaving the form page.
+
+## Context Menu
+Open source:
+- `onContextMenu` on the table-form container.
+
+Items:
+
+| Key | Label | Enabled When | Behavior |
+| --- | --- | --- | --- |
+| `submit` | Submit | form valid and at least one row | Open submit confirmation popup. |
+| `delete` | Delete | at least one local row checked and more than one row remains | Remove checked rows from the update form only; it does not call the delete API. |
+
+There is no `Create items` action on this page — creating new rows belongs to `/employees/create`.
+
+## Keyboard Navigation
+Use shared `useGridInputNavigation()`, same behavior as `FRONTEND-EMPLOYEE-CREATE`, including the Organization select cell.
+
+## Submit Flow
+```text
+Rows loaded from API
+    ↓
+User edits table rows (including Organization select per row)
+    ↓
+User submits
+    ↓
+ConfirmDialog opens
+    ↓
+User confirms
+    ↓
+FullPageLoadingOverlay appears
+    ↓
+PATCH /api/employees/bulk with { items }
+    ↓
+Invalidate ['employees'] and by-ids query
+    ↓
+Clear Redux selected ids
+    ↓
+Redirect to /employees
+```
+
+## Loading State
+- Initial query loading renders page-level loading state.
+- Mutation pending renders full-page loading overlay and disables actions.
+- Confirm dialog can be dragged by its header area and closes on outside click when the update mutation is not pending.
+
+## Error State
+- Query error renders page-level `ErrorState` with retry when safe.
+- API field errors for `items[n].*` map to table row inputs, including `items[n].organizationId`.
+- Non-field mutation error renders near page actions or inside confirmation popup.
+- Do not expose raw backend error objects.
+
+## Success State
+- Show top-right toast.
+- Redirect to `/employees`.
+- Clear `employee_checked` from Redux.
+- Invalidate `['employees']`.
+
+## Validation
+Client Zod schema mirrors API (`API-EMPLOYEE-BULK-UPDATE`):
+- `items`: min 1, max 100.
+- `items[].id`: UUID.
+- `employeeCode`/`email`: unique within current form rows when present.
+- `organizationId`: optional integer or `null`.
+
+## Ambiguities
+None blocking. Treating "replace `/employees/:id/edit` with bulk-only editing" as the intended reading of task §5 ("Employee Create/Edit không thao tác với một Employee duy nhất") is this contract's own inference, not a line the daily task states route-by-route — recorded here so the backend/frontend agents implement the same assumption rather than two different ones.

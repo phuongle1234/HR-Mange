@@ -1,10 +1,14 @@
 import { ApiEndpoints } from '../../../shared/api/api-endpoints';
 import { baseApiService } from '../../../shared/api/base-api.service';
 import type {
+  BulkCreateEmployeesPayload,
+  BulkDeleteEmployeesPayload,
+  BulkUpdateEmployeesPayload,
   CreateEmployeePayload,
   Employee,
   EmployeeListMeta,
   EmployeeListQueryState,
+  GetEmployeesByIdsPayload,
   UpdateEmployeePayload,
 } from '../types/employee.types';
 
@@ -62,5 +66,17 @@ export const employeeApiService = {
   },
   delete(id: string): Promise<null> {
     return baseApiService.delete<null>(ApiEndpoints.employees.delete(id));
+  },
+  findByIds(payload: GetEmployeesByIdsPayload): Promise<Employee[]> {
+    return baseApiService.post<Employee[]>(ApiEndpoints.employees.byIds(), payload);
+  },
+  bulkCreate(payload: BulkCreateEmployeesPayload): Promise<Employee[]> {
+    return baseApiService.post<Employee[]>(ApiEndpoints.employees.bulkCreate(), payload);
+  },
+  bulkUpdate(payload: BulkUpdateEmployeesPayload): Promise<Employee[]> {
+    return baseApiService.patch<Employee[]>(ApiEndpoints.employees.bulkUpdate(), payload);
+  },
+  bulkDelete(payload: BulkDeleteEmployeesPayload): Promise<{ deletedCount: number }> {
+    return baseApiService.delete<{ deletedCount: number }>(ApiEndpoints.employees.bulkDelete(), { data: payload });
   },
 };

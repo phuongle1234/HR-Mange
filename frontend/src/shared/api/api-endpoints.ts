@@ -11,6 +11,7 @@ export const ApiEndpoints = {
     logout: () => '/api/auth/logout',
     changePassword: () => '/api/auth/change-password',
     forgotPassword: () => '/api/auth/forgot-password',
+    invitationAccept: () => '/api/auth/invitations/accept',
   },
   employees: {
     list: () => '/api/employees',
@@ -18,6 +19,16 @@ export const ApiEndpoints = {
     create: () => '/api/employees',
     update: (id: string) => `/api/employees/${encodeURIComponent(id)}`,
     delete: (id: string) => `/api/employees/${encodeURIComponent(id)}`,
+    byIds: () => '/api/employees/by-ids',
+    bulkCreate: () => '/api/employees/bulk',
+    bulkUpdate: () => '/api/employees/bulk',
+    bulkDelete: () => '/api/employees/bulk',
+  },
+  organizations: {
+    list: () => '/api/organizations',
+    createMany: () => '/api/organizations',
+    updateMany: () => '/api/organizations',
+    deleteMany: () => '/api/organizations',
   },
   organizationTypes: {
     list: () => '/api/organization-types',
@@ -25,5 +36,9 @@ export const ApiEndpoints = {
     createMany: () => '/api/organization-types',
     updateMany: () => '/api/organization-types',
     deleteMany: () => '/api/organization-types',
+  },
+  invitations: {
+    create: () => '/api/invitations',
+    accept: () => '/api/auth/invitations/accept',
   },
 } as const;

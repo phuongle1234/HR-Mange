@@ -7,6 +7,15 @@ import {
   IsEmployeeEmailUniqueConstraint,
 } from './validators/employee-unique.validator';
 import { AttachRouteIdInterceptor } from './interceptors/attach-route-id.interceptor';
+import {
+  EmployeeBulkFieldsAreUniqueInDatabaseConstraint,
+  EmployeeBulkOrganizationsExistConstraint,
+  HasEmployeeBulkMutableFieldConstraint,
+  HasUniqueEmployeeBulkCodesConstraint,
+  HasUniqueEmployeeBulkEmailsConstraint,
+  HasUniqueEmployeeBulkIdsConstraint,
+} from './validators/employee-bulk-dto.validator';
+import { HasUniqueEmployeeIdsConstraint } from './validators/employee-ids-dto.validator';
 
 @Module({
   imports: [AuthModule],
@@ -19,6 +28,13 @@ import { AttachRouteIdInterceptor } from './interceptors/attach-route-id.interce
     },
     IsEmployeeCodeUniqueConstraint,
     IsEmployeeEmailUniqueConstraint,
+    HasUniqueEmployeeBulkIdsConstraint,
+    HasUniqueEmployeeBulkCodesConstraint,
+    HasUniqueEmployeeBulkEmailsConstraint,
+    HasEmployeeBulkMutableFieldConstraint,
+    EmployeeBulkFieldsAreUniqueInDatabaseConstraint,
+    EmployeeBulkOrganizationsExistConstraint,
+    HasUniqueEmployeeIdsConstraint,
     AttachRouteIdInterceptor,
   ],
 })

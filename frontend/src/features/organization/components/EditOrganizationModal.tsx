@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import ReactSelect from 'react-select';
 import {
   Button,
   Dialog,
@@ -15,13 +16,14 @@ import {
 } from '@mui/material';
 import { editOrganizationFormSchema } from '../schemas/organization.schemas';
 import type { EditOrganizationFormValues } from '../schemas/organization.schemas';
-import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '../types/organization.types';
 import type { OrganizationStage } from '../types/organization.types';
 
 interface EditOrganizationModalProps {
   /** Non-null opens the dialog, prefilled from this record - task's "Node Actions" §3. */
   organization: OrganizationStage | null;
   parent: OrganizationStage | null;
+  organizationTypeOptions: Array<{ value: string; label: string }>;
+  isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (values: EditOrganizationFormValues) => void;
 }
@@ -29,21 +31,21 @@ interface EditOrganizationModalProps {
 const DEFAULT_VALUES: EditOrganizationFormValues = {
   code: '',
   name: '',
-  type: 'DEPARTMENT',
+  organizationTypeId: null,
   managerName: '',
   isActive: true,
   description: '',
 };
 
 /**
- * Full edit form (code/name/type/manager/status/description), parent
+ * Full edit form (code/name/organization type/manager/status/description), parent
  * readonly, uiId/parentUiId never touched here - matches the "Edit
  * Organization Modal" mockup at the end of the task file (see
  * docs/09-workflow/plans/organization-frontend-chart.md decision #1 for why
  * this is an edit form rather than the read-only Detail modal described
  * earlier in the same task file).
  */
-export function EditOrganizationModal({ organization, parent, onCancel, onSubmit }: EditOrganizationModalProps) {
+export function EditOrganizationModal({ organization, parent, organizationTypeOptions, isSubmitting = false, onCancel, onSubmit }: EditOrganizationModalProps) {
   const {
     control,
     register,
@@ -60,7 +62,7 @@ export function EditOrganizationModal({ organization, parent, onCancel, onSubmit
       reset({
         code: organization.code,
         name: organization.name,
-        type: organization.type,
+        organizationTypeId: organization.organizationTypeId ?? null,
         managerName: organization.manager?.name ?? '',
         isActive: organization.isActive ?? true,
         description: organization.description ?? '',
@@ -94,22 +96,7 @@ export function EditOrganizationModal({ organization, parent, onCancel, onSubmit
             {...register('name')}
           />
 
-          <Controller
-            control={control}
-            name="type"
-            render={({ field }) => (
-              <FormControl fullWidth>
-                <InputLabel id="edit-organization-type-label">Type</InputLabel>
-                <Select labelId="edit-organization-type-label" label="Type" {...field}>
-                  {ORGANIZATION_TYPE_VALUES.map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {ORGANIZATION_TYPE_LABELS[type]}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          />
+          <Controller control={control} name="organizationTypeId" render={({ field }) => <ReactSelect classNamePrefix="react-select" isClearable options={organizationTypeOptions} value={organizationTypeOptions.find((option) => option.value === field.value) ?? null} onChange={(option) => field.onChange(option?.value ?? null)} />} />
 
           <MuiTextField label="Parent" fullWidth disabled value={parent?.name ?? '—'} />
 
@@ -151,8 +138,8 @@ export function EditOrganizationModal({ organization, parent, onCancel, onSubmit
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit(onValid)}>
+        <Button disabled={isSubmitting} onClick={onCancel}>Cancel</Button>
+        <Button variant="contained" disabled={isSubmitting} onClick={handleSubmit(onValid)}>
           Save
         </Button>
       </DialogActions>

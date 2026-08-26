@@ -46,7 +46,7 @@ Store configurable organization type records used by Organization screens and fu
 - `OrganizationType N-1 User` via `createdByUserId` (nullable).
 - `OrganizationType N-1 User` via `updatedByUserId` (nullable).
 - `OrganizationType 1-N AuditLog` is polymorphic via `AuditLog.entityType = 'ORGANIZATION_TYPE'` and `AuditLog.entityId = organization_types.id`, not a database FK.
-- No current database FK from `organizations` to `organization_types` exists in this phase.
+- `OrganizationType` 1-N `Organization` via `Organization.organizationTypeId` (nullable, `ON DELETE RESTRICT` on the `Organization` side). **Resolved 2026-08-26** — this closes the gap this file previously flagged ("No current database FK from `organizations` to `organization_types` exists in this phase"). See `DB-ORGANIZATION`'s "Organization Type FK" section for the full decision record.
 
 ## Indexes
 - Unique index on `name`.

@@ -32,21 +32,30 @@ enum OrganizationChartType {
   TEAM
 }
 
-model User {
-  id           String   @id @default(uuid())
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  fullName     String   @map("full_name") @db.VarChar(255)
-  isActive     Boolean  @default(true) @map("is_active")
-  lastLoginAt  DateTime? @map("last_login_at")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+enum InvitationStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  EXPIRED
+  SEND_FAILED
+}
 
-  createdEmployees          Employee[]       @relation("EmployeeCreatedBy")
-  updatedEmployees          Employee[]       @relation("EmployeeUpdatedBy")
-  createdOrganizationTypes  OrganizationType[] @relation("OrganizationTypeCreatedBy")
-  updatedOrganizationTypes  OrganizationType[] @relation("OrganizationTypeUpdatedBy")
-  auditLogs                 AuditLog[]
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  fullName     String    @map("full_name") @db.VarChar(255)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  createdEmployees         Employee[]         @relation("EmployeeCreatedBy")
+  updatedEmployees         Employee[]         @relation("EmployeeUpdatedBy")
+  employeeAccount          Employee?          @relation("EmployeeUserAccount")
+  createdOrganizationTypes OrganizationType[] @relation("OrganizationTypeCreatedBy")
+  updatedOrganizationTypes OrganizationType[] @relation("OrganizationTypeUpdatedBy")
+  auditLogs                AuditLog[]
 
   @@map("users")
 }
@@ -60,16 +69,22 @@ model Employee {
   phone           String?        @db.VarChar(30)
   position        String?        @db.VarChar(100)
   status          EmployeeStatus @default(ACTIVE)
+  organizationId  Int?           @map("organization_id")
+  userId          String?        @unique @map("user_id")
   createdByUserId String?        @map("created_by_user_id")
   updatedByUserId String?        @map("updated_by_user_id")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  createdBy User? @relation("EmployeeCreatedBy", fields: [createdByUserId], references: [id])
-  updatedBy User? @relation("EmployeeUpdatedBy", fields: [updatedByUserId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation("EmployeeUserAccount", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy    User?         @relation("EmployeeCreatedBy", fields: [createdByUserId], references: [id])
+  updatedBy    User?         @relation("EmployeeUpdatedBy", fields: [updatedByUserId], references: [id])
+  invitations  Invitation[]
 
   @@index([status])
   @@index([status, createdAt])
+  @@index([organizationId])
   @@map("employees")
 }
 
@@ -77,25 +92,30 @@ model Employee {
 // see docs/04-database/entities/organization.md and
 // docs/04-database/conventions.md's Primary Keys section.
 model Organization {
-  id              Int                 @id @default(autoincrement())
-  code            String              @unique @db.VarChar(50)
-  name            String              @db.VarChar(255)
-  description     String?
+  id          Int     @id @default(autoincrement())
+  code        String  @unique @db.VarChar(50)
+  name        String  @db.VarChar(255)
+  description String?
 
-  parentId        Int?                @map("parent_id")
-  parent          Organization?       @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Organization[]      @relation("OrganizationHierarchy")
+  parentId Int?           @map("parent_id")
+  parent   Organization?  @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Organization[] @relation("OrganizationHierarchy")
 
-  type            OrganizationChartType @default(DEPARTMENT)
-  sortOrder       Int                 @default(0) @map("sort_order")
-  isActive        Boolean             @default(true) @map("is_active")
+  type               OrganizationChartType @default(DEPARTMENT)
+  organizationTypeId String?               @map("organization_type_id")
+  organizationType   OrganizationType?     @relation(fields: [organizationTypeId], references: [id], onDelete: Restrict)
+  sortOrder          Int                   @default(0) @map("sort_order")
+  isActive           Boolean               @default(true) @map("is_active")
 
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
-  createdByUserId String?             @map("created_by_user_id")
-  updatedByUserId String?             @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdByUserId String?  @map("created_by_user_id")
+  updatedByUserId String?  @map("updated_by_user_id")
+
+  employees Employee[]
 
   @@index([parentId])
+  @@index([organizationTypeId])
   @@map("organizations")
 }
 
@@ -108,10 +128,32 @@ model OrganizationType {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  createdBy User? @relation("OrganizationTypeCreatedBy", fields: [createdByUserId], references: [id])
-  updatedBy User? @relation("OrganizationTypeUpdatedBy", fields: [updatedByUserId], references: [id])
+  createdBy     User?          @relation("OrganizationTypeCreatedBy", fields: [createdByUserId], references: [id])
+  updatedBy     User?          @relation("OrganizationTypeUpdatedBy", fields: [updatedByUserId], references: [id])
+  organizations Organization[]
 
   @@map("organization_types")
+}
+
+model Invitation {
+  id            String           @id @default(uuid())
+  employeeId    String           @map("employee_id")
+  email         String           @db.VarChar(255)
+  tokenHash     String           @unique @map("token_hash") @db.VarChar(255)
+  expiresAt     DateTime         @map("expires_at")
+  acceptedAt    DateTime?        @map("accepted_at")
+  status        InvitationStatus @default(PENDING)
+  sentAt        DateTime?        @map("sent_at")
+  sendAttempts  Int              @default(0) @map("send_attempts")
+  lastSendError String?          @map("last_send_error") @db.Text
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("invitations")
 }
 
 model AuditLog {

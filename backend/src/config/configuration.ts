@@ -23,6 +23,12 @@ export interface AppConfig {
     publicKey: string;
     accessExpiresIn: string;
   };
+  mail: {
+    provider: string;
+    host: string;
+    port: number;
+    from: string;
+  };
   log: {
     retentionDays: number;
   };
@@ -41,6 +47,12 @@ export default (): AppConfig => ({
     privateKey: (process.env.JWT_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
     publicKey: (process.env.JWT_PUBLIC_KEY ?? '').replace(/\\n/g, '\n'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
+  },
+  mail: {
+    provider: process.env.MAIL_PROVIDER ?? 'smtp',
+    host: process.env.MAIL_HOST ?? 'localhost',
+    port: Number(process.env.MAIL_PORT ?? 1025),
+    from: process.env.MAIL_FROM ?? 'no-reply@local.test',
   },
   log: {
     retentionDays: Number(process.env.LOG_RETENTION_DAYS ?? 10),

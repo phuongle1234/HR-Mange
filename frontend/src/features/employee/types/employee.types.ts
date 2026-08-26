@@ -23,6 +23,9 @@ export interface Employee {
   phone: string | null;
   position: string | null;
   status: EmployeeStatus;
+  organizationId?: number | null;
+  organizationName?: string | null;
+  userId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +53,46 @@ export interface CreateEmployeePayload {
   phone?: string;
   position?: string;
   status: EmployeeStatus;
+  organizationId?: number | null;
 }
 
 export type UpdateEmployeePayload = Partial<CreateEmployeePayload>;
+
+export interface EmployeeBulkCreateItem {
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  position?: string | null;
+  status: EmployeeStatus;
+  organizationId?: number | null;
+}
+
+export interface BulkCreateEmployeesPayload {
+  items: EmployeeBulkCreateItem[];
+}
+
+export interface EmployeeBulkUpdateItem {
+  id: string;
+  employeeCode?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string | null;
+  position?: string | null;
+  status?: EmployeeStatus;
+  organizationId?: number | null;
+}
+
+export interface BulkUpdateEmployeesPayload {
+  items: EmployeeBulkUpdateItem[];
+}
+
+export interface BulkDeleteEmployeesPayload {
+  ids: string[];
+}
+
+export interface GetEmployeesByIdsPayload {
+  ids: string[];
+}

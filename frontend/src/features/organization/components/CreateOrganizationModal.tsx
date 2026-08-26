@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import ReactSelect from 'react-select';
 import {
   Button,
   Chip,
@@ -8,10 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   IconButton,
-  MenuItem,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -26,19 +24,20 @@ import {
   DEFAULT_CREATE_ORGANIZATION_ROW,
 } from '../schemas/organization.schemas';
 import type { CreateOrganizationFormValues } from '../schemas/organization.schemas';
-import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '../types/organization.types';
 import type { OrganizationStage } from '../types/organization.types';
 
 interface CreateOrganizationModalProps {
   isOpen: boolean;
   /** Non-null when opened via a node's `[+]` (task §11/§12) - shown readonly. */
   parent: OrganizationStage | null;
+  organizationTypeOptions: Array<{ value: string; label: string }>;
+  isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (rows: CreateOrganizationFormValues['rows']) => void;
 }
 
 /** Task §12/§13/§14/§15/§16 - multi-row Create Organization modal. */
-export function CreateOrganizationModal({ isOpen, parent, onCancel, onSubmit }: CreateOrganizationModalProps) {
+export function CreateOrganizationModal({ isOpen, parent, organizationTypeOptions, isSubmitting = false, onCancel, onSubmit }: CreateOrganizationModalProps) {
   const {
     control,
     register,
@@ -81,7 +80,7 @@ export function CreateOrganizationModal({ isOpen, parent, onCancel, onSubmit }: 
               <TableCell>#</TableCell>
               <TableCell>Code</TableCell>
               <TableCell>Name</TableCell>
-              <TableCell>Type</TableCell>
+              <TableCell>Organization Type</TableCell>
               <TableCell align="right">Action</TableCell>
             </TableRow>
           </TableHead>
@@ -108,27 +107,13 @@ export function CreateOrganizationModal({ isOpen, parent, onCancel, onSubmit }: 
                   />
                 </TableCell>
                 <TableCell>
-                  <Controller
-                    control={control}
-                    name={`rows.${index}.type` as const}
-                    render={({ field: selectField }) => (
-                      <FormControl size="small" fullWidth>
-                        <Select {...selectField}>
-                          {ORGANIZATION_TYPE_VALUES.map((type) => (
-                            <MenuItem key={type} value={type}>
-                              {ORGANIZATION_TYPE_LABELS[type]}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
+                  <Controller control={control} name={`rows.${index}.organizationTypeId` as const} render={({ field: selectField }) => <ReactSelect classNamePrefix="react-select" isClearable options={organizationTypeOptions} value={organizationTypeOptions.find((option) => option.value === selectField.value) ?? null} onChange={(option) => selectField.onChange(option?.value ?? null)} />} />
                 </TableCell>
                 <TableCell align="right">
                   <IconButton
                     size="small"
                     aria-label="Remove row"
-                    disabled={fields.length <= 1}
+                    disabled={fields.length <= 1 || isSubmitting}
                     onClick={() => remove(index)}
                   >
                     <DeleteIcon fontSize="inherit" />
@@ -143,6 +128,7 @@ export function CreateOrganizationModal({ isOpen, parent, onCancel, onSubmit }: 
           type="button"
           size="small"
           startIcon={<AddIcon />}
+          disabled={isSubmitting}
           onClick={() => append(DEFAULT_CREATE_ORGANIZATION_ROW)}
           sx={{ mt: 2 }}
         >
@@ -156,8 +142,8 @@ export function CreateOrganizationModal({ isOpen, parent, onCancel, onSubmit }: 
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit(onValid)}>
+        <Button disabled={isSubmitting} onClick={onCancel}>Cancel</Button>
+        <Button variant="contained" disabled={isSubmitting} onClick={handleSubmit(onValid)}>
           Create
         </Button>
       </DialogActions>

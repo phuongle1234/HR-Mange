@@ -52,19 +52,31 @@ ApiEndpoints
 │   ├── me
 │   ├── logout
 │   ├── changePassword
-│   └── forgotPassword
-└── employees
-    ├── list
-    ├── detail(id)
-    ├── create
-    ├── update(id)
-    └── delete(id)
-└── organizationTypes
-    ├── list
-    ├── byIds
-    ├── createMany
-    ├── updateMany
-    └── deleteMany
+│   ├── forgotPassword
+│   └── acceptInvitation          (2026-08-26, POST /api/auth/invitations/accept)
+├── employees
+│   ├── list
+│   ├── detail(id)
+│   ├── create
+│   ├── update(id)
+│   ├── delete(id)
+│   ├── bulkCreate                (2026-08-26, POST /api/employees/bulk)
+│   ├── bulkUpdate                (2026-08-26, PATCH /api/employees/bulk)
+│   ├── bulkDelete                (2026-08-26, DELETE /api/employees/bulk)
+│   └── byIds                     (2026-08-26, POST /api/employees/by-ids)
+├── organizations                 (2026-08-26 — was undocumented; see API-ORGANIZATION-LIST etc.)
+│   ├── list
+│   ├── createMany
+│   ├── updateMany
+│   └── deleteMany
+├── organizationTypes
+│   ├── list
+│   ├── byIds
+│   ├── createMany
+│   ├── updateMany
+│   └── deleteMany
+└── invitations                   (2026-08-26)
+    └── createMany
 ```
 
 Rules:
@@ -134,9 +146,16 @@ There is no `DEPARTMENT_NOT_DEFINED` or `FORBIDDEN` mapping — Department and t
 
 Known organization type error mapping examples:
 - `ORGANIZATION_TYPE_NAME_EXISTS` -> `items[n].name` when the API returns a field path; otherwise form-level conflict.
-- `ORGANIZATION_TYPE_NOT_FOUND` -> page-level error with navigation back to `/organizations/types`.
+- `ORGANIZATION_TYPE_NOT_FOUND` -> page-level error with navigation back to `/organizations/types` (`/organization-types` bulk endpoints) or `items[n].organizationTypeId` field error (`/organizations`, `/employees` bulk endpoints referencing it as an FK).
 - `VALIDATION_ERROR` -> field-level errors when returned.
 - `UNAUTHORIZED` -> clear token, redirect to `/login`.
+
+Known employee bulk / organization / invitation error mapping examples (2026-08-26):
+- `EMPLOYEE_CODE_EXISTS` / `EMPLOYEE_EMAIL_EXISTS` on `/employees/bulk` -> `items[n].employeeCode` / `items[n].email`.
+- `EMPLOYEE_NOT_FOUND` on `/employees/bulk` or `/employees/by-ids` -> page-level error.
+- `ORGANIZATION_NOT_FOUND` -> `items[n].organizationId` field error (Employee bulk editor) or page-level (Organization update-many).
+- `INVITATION_TOKEN_INVALID` / `INVITATION_EXPIRED` / `INVITATION_ALREADY_ACCEPTED` / `USER_ALREADY_EXISTS` (accept flow) -> page-level safe message on `/invitation/accept`, never a field error.
+- Invite-create's `skipped[].reason` values (`EMPLOYEE_NOT_FOUND`, `USER_ALREADY_EXISTS`, `EMPLOYEE_MISSING_EMAIL`) are not errors at all — they arrive inside a `201` success response and render as a toast/summary, not through this error-mapping table.
 
 ## Base API Service
 Purpose:
@@ -158,7 +177,11 @@ EmployeeApiService
 ├── detail(id)
 ├── create(payload)
 ├── update(id, payload)
-└── delete(id)
+├── delete(id)
+├── bulkCreate(payload)     (2026-08-26)
+├── bulkUpdate(payload)     (2026-08-26)
+├── bulkDelete(payload)     (2026-08-26)
+└── findByIds(payload)      (2026-08-26)
 ```
 
 Auth service example:
@@ -169,7 +192,8 @@ AuthApiService
 ├── getMe()
 ├── logout()
 ├── changePassword(payload)
-└── forgotPassword(payload)
+├── forgotPassword(payload)
+└── acceptInvitation(payload)   (2026-08-26)
 ```
 
 Organization type service example:
@@ -183,6 +207,23 @@ OrganizationTypeApiService
 └── deleteMany(payload)
 ```
 
+Organization service example (2026-08-26 — was a stub, see `FRONTEND-ORGANIZATION-CHART`):
+
+```text
+OrganizationApiService
+├── list(query)
+├── createMany(payload)
+├── updateMany(payload)
+└── deleteMany(payload)
+```
+
+Invitations service example (2026-08-26):
+
+```text
+InvitationsApiService
+└── createMany(payload)
+```
+
 Rules:
 - Services receive already-normalized payloads from page/hook helpers.
 - Services do not read component state directly.
@@ -194,17 +235,27 @@ Query hooks call API services and own query keys.
 ```text
 useEmployeesQuery(queryState)
 useEmployeeDetailQuery(id)
+useEmployeesByIdsQuery(ids)             (2026-08-26)
 useCreateEmployeeMutation()
 useUpdateEmployeeMutation()
 useDeleteEmployeeMutation()
+useBulkCreateEmployeesMutation()        (2026-08-26)
+useBulkUpdateEmployeesMutation()        (2026-08-26)
+useBulkDeleteEmployeesMutation()        (2026-08-26)
+useOrganizationsQuery(query)            (2026-08-26)
+useCreateOrganizationsMutation()        (2026-08-26)
+useUpdateOrganizationsMutation()        (2026-08-26)
+useDeleteOrganizationsMutation()        (2026-08-26)
 useOrganizationTypesQuery(queryState)
 useOrganizationTypesByIdsQuery(ids)
 useCreateOrganizationTypesMutation()
 useUpdateOrganizationTypesMutation()
 useDeleteOrganizationTypesMutation()
+useCreateInvitationsMutation()          (2026-08-26)
 useLoginMutation()
 useForgotPasswordMutation()
 useChangePasswordMutation()
+useAcceptInvitationMutation()           (2026-08-26)
 ```
 
 Rules:

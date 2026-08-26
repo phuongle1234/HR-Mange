@@ -73,9 +73,32 @@ export class EmployeeNotFoundException extends AppException {
   }
 }
 
+export class EmployeeCodeExistsException extends AppException {
+  constructor() {
+    super(ErrorCode.EMPLOYEE_CODE_EXISTS, 'An employee with this code already exists.', HttpStatus.CONFLICT);
+  }
+}
+
+export class EmployeeEmailExistsException extends AppException {
+  constructor() {
+    super(ErrorCode.EMPLOYEE_EMAIL_EXISTS, 'An employee with this email already exists.', HttpStatus.CONFLICT);
+  }
+}
+
 export class OrganizationNotFoundException extends AppException {
   constructor(id: string) {
     super(ErrorCode.ORGANIZATION_NOT_FOUND, `Organization with id "${id}" was not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
+export class OrganizationReferenceNotFoundException extends AppException {
+  constructor(fieldPath: string) {
+    super(
+      ErrorCode.ORGANIZATION_NOT_FOUND,
+      'One or more organization references do not exist.',
+      HttpStatus.BAD_REQUEST,
+      { [fieldPath]: ['organizationId must reference an existing organization.'] },
+    );
   }
 }
 
@@ -85,6 +108,17 @@ export class OrganizationTypeNotFoundException extends AppException {
       ErrorCode.ORGANIZATION_TYPE_NOT_FOUND,
       `Organization type with id "${id}" was not found.`,
       HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+export class OrganizationTypeReferenceNotFoundException extends AppException {
+  constructor(fieldPath: string) {
+    super(
+      ErrorCode.ORGANIZATION_TYPE_NOT_FOUND,
+      'One or more organization type references do not exist.',
+      HttpStatus.BAD_REQUEST,
+      { [fieldPath]: ['organizationTypeId must reference an existing organization type.'] },
     );
   }
 }
@@ -99,3 +133,26 @@ export class OrganizationTypeNameExistsException extends AppException {
   }
 }
 
+export class InvitationTokenInvalidException extends AppException {
+  constructor() {
+    super(ErrorCode.INVITATION_TOKEN_INVALID, 'Invitation token is invalid.', HttpStatus.NOT_FOUND);
+  }
+}
+
+export class InvitationExpiredException extends AppException {
+  constructor() {
+    super(ErrorCode.INVITATION_EXPIRED, 'Invitation token has expired.', HttpStatus.GONE);
+  }
+}
+
+export class InvitationAlreadyAcceptedException extends AppException {
+  constructor() {
+    super(ErrorCode.INVITATION_ALREADY_ACCEPTED, 'Invitation has already been accepted.', HttpStatus.CONFLICT);
+  }
+}
+
+export class UserAlreadyExistsException extends AppException {
+  constructor() {
+    super(ErrorCode.USER_ALREADY_EXISTS, 'A user account already exists for this employee.', HttpStatus.CONFLICT);
+  }
+}

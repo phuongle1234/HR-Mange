@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OrganizationController } from './controller/organization.controller';
 import { OrganizationService } from './service/organization.service';
+import { OrganizationTypeReferenceExistsConstraint } from './validators/organization-type-reference.validator';
 
 @Module({
   controllers: [OrganizationController],
@@ -10,6 +11,7 @@ import { OrganizationService } from './service/organization.service';
       provide: 'IOrganizationService',
       useExisting: OrganizationService,
     },
+    OrganizationTypeReferenceExistsConstraint,
   ],
 })
 export class OrganizationModule {}

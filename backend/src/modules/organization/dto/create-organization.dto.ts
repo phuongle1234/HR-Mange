@@ -1,6 +1,7 @@
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min, MinLength, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, MinLength, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { OrganizationChartType } from '@prisma/client';
+import { OrganizationTypeReferenceExists } from '../validators/organization-type-reference.validator';
 
 export class CreateOrganizationDto {
   @IsString()
@@ -26,6 +27,11 @@ export class CreateOrganizationDto {
   @IsOptional()
   @IsEnum(OrganizationChartType, { message: 'type must be one of COMPANY, BRANCH, DIVISION, DEPARTMENT, TEAM.' })
   type?: OrganizationChartType;
+
+  @IsOptional()
+  @IsUUID()
+  @OrganizationTypeReferenceExists()
+  organizationTypeId?: string | null;
 
   @IsOptional()
   @IsInt()

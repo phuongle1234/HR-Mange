@@ -26,6 +26,7 @@ export function useOrganizationStage(): UseOrganizationStageResult {
         const maxUiId = Math.max(0, ...current.map((item) => item.uiId));
         const newOrganizations: OrganizationStage[] = items.map((item, index) => ({
           ...item,
+          type: 'DEPARTMENT',
           uiId: maxUiId + index + 1,
           parentUiId,
         }));
@@ -49,8 +50,8 @@ export function useOrganizationStage(): UseOrganizationStageResult {
           ...item,
           code: values.code,
           name: values.name,
-          type: values.type,
           description: values.description,
+          organizationTypeId: values.organizationTypeId,
           isActive: values.isActive,
           manager: values.managerName ? { ...item.manager, name: values.managerName } : undefined,
         };

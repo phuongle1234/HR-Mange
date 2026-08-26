@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { ORGANIZATION_TYPE_VALUES } from '../types/organization.types';
-
 const codeSchema = z
   .string()
   .trim()
@@ -13,13 +11,13 @@ const nameSchema = z
   .min(1, 'Name is required')
   .max(255, 'Name must be 255 characters or fewer');
 
-const typeSchema = z.enum(ORGANIZATION_TYPE_VALUES);
+const organizationTypeIdSchema = z.string().uuid().nullable().optional();
 
 /** One row of the Create Organization modal's table - task §13. */
 export const createOrganizationRowSchema = z.object({
   code: codeSchema,
   name: nameSchema,
-  type: typeSchema,
+  organizationTypeId: organizationTypeIdSchema,
   description: z.string().trim().optional(),
 });
 export type CreateOrganizationFormItem = z.infer<typeof createOrganizationRowSchema>;
@@ -54,7 +52,7 @@ export type CreateOrganizationFormValues = z.infer<typeof createOrganizationForm
 export const DEFAULT_CREATE_ORGANIZATION_ROW: CreateOrganizationFormItem = {
   code: '',
   name: '',
-  type: 'DEPARTMENT',
+  organizationTypeId: null,
   description: '',
 };
 
@@ -62,7 +60,7 @@ export const DEFAULT_CREATE_ORGANIZATION_ROW: CreateOrganizationFormItem = {
 export const editOrganizationFormSchema = z.object({
   code: codeSchema,
   name: nameSchema,
-  type: typeSchema,
+  organizationTypeId: organizationTypeIdSchema,
   managerName: z.string().trim().max(255, 'Manager name must be 255 characters or fewer').optional(),
   isActive: z.boolean(),
   description: z.string().trim().optional(),

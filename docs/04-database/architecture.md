@@ -23,6 +23,8 @@ Define the overall database technology approach and how entities are organized b
 | --- | --- | --- |
 | Identity | `User` | Draft (`DB-USER`) |
 | Domain | `Employee`, `Department` (future) | Draft / blocked (`DB-EMPLOYEE`) |
+| Domain | `Organization`, `OrganizationType` | Draft (`DB-ORGANIZATION`, `DB-ORGANIZATION-TYPE`) — added after this table was last updated; listed here now for accuracy. |
+| Domain | `Invitation` | Draft, new (`DB-INVITATION`, 2026-08-26). |
 | Audit | `AuditLog` | Draft (`DB-AUDIT-LOG`) |
 | Auth support | `PasswordResetToken` (if forgot-password reset is approved) | Not yet specified |
 

@@ -38,7 +38,43 @@ export interface OrganizationStage {
   code: string;
   name: string;
   type: OrganizationType;
+  organizationTypeId?: string | null;
   description?: string;
   manager?: OrganizationManager;
   isActive?: boolean;
+}
+
+export interface OrganizationApiItem {
+  id: number;
+  code: string;
+  name: string;
+  type: OrganizationType;
+  organizationTypeId: string | null;
+  description: string | null;
+  parentId: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+}
+
+export interface OrganizationListQuery {
+  parentId?: number;
+  type?: OrganizationType;
+  isActive?: boolean;
+  organizationTypeId?: string;
+}
+
+export interface CreateOrganizationsPayload {
+  items: Array<{ code: string; name: string; organizationTypeId?: string | null; description?: string | null; parentId?: number | null }>;
+}
+
+export interface UpdateOrganizationsPayload {
+  items: Array<{ id: number; code?: string; name?: string; organizationTypeId?: string | null; description?: string | null; parentId?: number | null; isActive?: boolean }>;
+}
+
+export interface DeleteOrganizationsPayload {
+  ids: number[];
 }

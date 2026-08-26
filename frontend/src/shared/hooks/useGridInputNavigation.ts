@@ -16,7 +16,7 @@ export function useGridInputNavigation({ gridName }: GridInputNavigationOptions)
       'data-grid-name': gridName,
       'data-grid-row': rowIndex,
       'data-grid-column': columnIndex,
-      onKeyDown: (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
         const nextByKey: Record<string, [number, number]> = {
           ArrowDown: [rowIndex + 1, columnIndex],
           ArrowUp: [rowIndex - 1, columnIndex],

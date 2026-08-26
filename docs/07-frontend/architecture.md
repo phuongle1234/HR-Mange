@@ -25,6 +25,7 @@ Define the React frontend architecture for the Employee Management System. This 
 - React Hook Form and Zod for forms.
 - `react-toastify` for toast feedback.
 - Tailwind CSS for styling according to UI/UX specs.
+- `react-select@5.10.2` for the Employee bulk table editor's Organization column and the Organization modals' Organization Type field (2026-08-26) — not yet a dependency; must pass the React 19 compatibility check documented in `FRONTEND-EMPLOYEE-CREATE` before use, and must not trigger a React downgrade.
 
 ## Application Layers
 ```text
@@ -60,7 +61,8 @@ src
     ├── auth
     ├── employee
     ├── organization
-    └── organization-type
+    ├── organization-type
+    └── invitations
 ```
 
 Rules:
@@ -152,6 +154,18 @@ Rules:
 - Change Password renders in `AppLayout`.
 - Password values must stay inside form submit lifecycle and must not be stored globally.
 
+Invitations feature proposed structure (2026-08-26):
+
+```text
+src/features/invitations
+├── services/invitations.api.ts   - createMany(payload) -> POST /api/invitations
+└── hooks/useCreateInvitationsMutation.ts
+```
+
+Rules:
+- Owns only the invite-creation call, consumed by `EmployeeListPage`'s context menu (`FRONTEND-EMPLOYEE-LIST`).
+- Invitation-accept (`POST /api/auth/invitations/accept`) lives under `features/auth/` instead — its route is under `/api/auth` per `API-AUTH-INVITATIONS-ACCEPT`'s contract, and it has no authenticated user yet, unlike invite-creation.
+
 OrganizationType feature proposed structure:
 
 ```text
@@ -178,11 +192,14 @@ Rules:
 | State | Owner |
 | --- | --- |
 | Auth status, access token, and current user | Redux through AuthProvider |
-| Employee list/detail data | TanStack Query |
+| Employee list/detail/by-ids data | TanStack Query |
+| Employee checked ids for update/delete/invite handoff | Redux Toolkit (`employee_checked`, update-navigation only) / local state (delete, invite) — see `FRONTEND-EMPLOYEE-LIST` |
+| Organization list data | TanStack Query (2026-08-26 — previously local "Frontend Stage" state, see `FRONTEND-ORGANIZATION-CHART`) |
 | Organization type list/by-ids data | TanStack Query |
 | Organization type checked ids for update handoff | Redux Toolkit |
+| Organization/Organization Type select options (Employee bulk editor, Organization modals) | TanStack Query, fetched once and reused across rows, never per-row |
 | Create/edit form values | React Hook Form |
-| Auth form values | React Hook Form |
+| Auth form values (including invitation-accept) | React Hook Form |
 | Search/filter/page UI state | Local React state or approved URL search params |
 | Modal/popup open state | Local React state |
 | Toasts | `react-toastify` |

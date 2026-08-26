@@ -33,8 +33,10 @@ Each endpoint must define:
 ## URL Conventions
 - API paths use `/api`.
 - Auth endpoints use `/api/auth`.
-- Employee endpoints use `/api/employees`.
+- Employee endpoints use `/api/employees`. Bulk employee endpoints use `/api/employees/bulk` (create/update/delete) and `/api/employees/by-ids` (read), added alongside the single-record endpoints rather than replacing them, because `POST /api/employees` etc. already have single-record meaning (2026-08-26).
+- Organization endpoints use `/api/organizations` (bulk-only in this phase — no single create/findOne/update/delete route, `DB-ORGANIZATION`).
 - Organization type endpoints use `/api/organization-types`.
+- Invitations endpoints use `/api/invitations` (create), except accept-invitation which is under `/api/auth/invitations/accept` per its own contract (`API-AUTH-INVITATIONS-ACCEPT`) — an auth-boundary operation (creates a `User`), not an invitations-CRUD operation.
 - Dynamic IDs use `:id` in specs.
 
 ## Response Conventions

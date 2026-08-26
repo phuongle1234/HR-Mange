@@ -6,12 +6,24 @@ status: draft
 depends_on:
   - FRONTEND-REACT-ROUTE
   - FRONTEND-AUTH-PROVIDER
+  - API-ORGANIZATION-LIST
+  - API-ORGANIZATION-CREATE-MANY
+  - API-ORGANIZATION-UPDATE-MANY
+  - API-ORGANIZATION-DELETE-MANY
 ---
 
 # Organization Chart
 
 ## Purpose
-Define the React page-level behavior for the Organization org-chart screen. This is a **frontend-only** feature (source: `docs/09-workflow/daily-tasks/fe-2026-08-23.md`, plan: `docs/09-workflow/plans/organization-frontend-chart.md`) — there is no backend API call anywhere in this page; all data lives in local React state ("Frontend Stage"). There is no `UI-ORGANIZATION`/`API-ORGANIZATION-*` spec this depends on for that reason (unlike `FRONTEND-EMPLOYEE-LIST`).
+Define the React page-level behavior for the Organization org-chart screen.
+
+## 2026-08-26 Daily Task Change: Real API Wiring (task §2.3, §10, §30-§34)
+This page was previously **frontend-only** (source: `docs/09-workflow/daily-tasks/fe-2026-08-23.md`, plan: `docs/09-workflow/plans/organization-frontend-chart.md`) — no backend API call anywhere, all data in local "Frontend Stage" React state, per `services/organization.api.ts`'s stub. This is now **resolved**: the page is wired to the real, now-documented Organization API (`API-ORGANIZATION-LIST`/`-CREATE-MANY`/`-UPDATE-MANY`/`-DELETE-MANY`), and the Create/Edit modals use a real `organizationTypeId` select. The sections below describe the resulting behavior; sections not called out as changed are unaffected.
+
+- `services/organization.api.ts`'s stub methods (`getTree`/`create`/`update`/`delete`, each throwing "not implemented") are replaced with real calls through `baseApiService`/`ApiEndpoints`, the same pattern `employee.api.ts` already uses (this file's own header comment already said to do this once the backend existed — see `FRONTEND-ARCHITECTURE`'s API Boundary).
+- `useOrganizationStage`'s local-only add/update/remove state is replaced by TanStack Query (`useQuery` for the tree, `useMutation` for create/update/delete), mirroring `FRONTEND-ORGANIZATION-TYPE-LIST`'s pattern.
+- `OrganizationStage.type: OrganizationType` remains in API/display data because the backend enum column still exists, but the Create/Edit modals no longer show or submit a separate **Type** field. New and edited rows use `organizationTypeId: string | null`, backed by a real `react-select` sourced from `GET /api/organization-types`; create omits `type` so the backend default applies, and update omits `type` so the existing enum value is preserved.
+- `uiId`-based optimistic tree math (`generateNextUiId`, `findDescendantUiIds`, `removeOrganizationTree`) stays for rendering the React Flow graph between mutations, but the source of truth for `id`/`parentId`/`organizationTypeId` becomes the API response, not local-only state.
 
 ## Route Reference
 ```text
@@ -34,7 +46,11 @@ features/organization/
 ├── schemas/organization.schemas.ts     - zod schemas + form-value types for both modals (CreateOrganizationFormValues, EditOrganizationFormValues)
 ├── utils/organization-tree.ts          - generateNextUiId, findDescendantUiIds, removeOrganizationTree, findOrganization, countChildren, wouldCreateCycle (unused stub, for a future Move feature)
 ├── utils/organization-layout.ts        - buildOrganizationNodes, buildOrganizationEdges, layoutOrganizationNodes (dagre, top-to-bottom)
-├── hooks/useOrganizationStage.ts       - owns the Frontend Stage (useState<OrganizationStage[]>([]))
+├── hooks/useOrganizationsQuery.ts      - TanStack Query wrapper for GET /api/organizations
+├── hooks/useCreateOrganizationsMutation.ts - POST /api/organizations and invalidate ['organizations']
+├── hooks/useUpdateOrganizationsMutation.ts - PATCH /api/organizations and invalidate ['organizations']
+├── hooks/useDeleteOrganizationsMutation.ts - DELETE /api/organizations and invalidate ['organizations']
+├── hooks/useOrganizationStage.ts       - legacy local-stage helper kept in source for now, no longer used by OrganizationPage
 ├── hooks/useOrganizationFlow.ts        - stage -> { nodes, edges }, debounced 200ms before each dagre layout pass
 ├── components/organization-actions.context.ts - lets OrganizationNode fire add/delete/edit callbacks without threading them through the pure node data
 ├── components/OrganizationNode.tsx     - custom React Flow node ([+] / name / [x] header, type + manager body)
@@ -42,18 +58,19 @@ features/organization/
 ├── components/OrganizationToolbar.tsx  - "+ Add Organization" button only (no in-content title - the Navbar already shows "Organization")
 ├── components/CreateOrganizationModal.tsx - multi-row create form (react-hook-form `useFieldArray` + zod)
 ├── components/EditOrganizationModal.tsx   - single-record edit form
-└── services/organization.api.ts        - stub object (getTree/create/update/delete), every method throws "not implemented" - TODO-commented for later API integration
+└── services/organization.api.ts        - real baseApiService/ApiEndpoints calls for list/createMany/updateMany/deleteMany
 ```
 
 ## Data Model
 ```ts
 interface OrganizationStage {
-  uiId: number;           // frontend-generated, never a UUID, never the DB id
+  uiId: number;           // maps to DB id after real API wiring
   parentUiId: number | null;
-  id?: number;             // DB id, unset until a real API exists
+  id?: number;             // DB id
   code: string;
   name: string;
   type: OrganizationType;  // COMPANY | BRANCH | DIVISION | DEPARTMENT | TEAM
+  organizationTypeId?: string | null;
   description?: string;
   manager?: { id?: number; name: string; avatar?: string };
   isActive?: boolean;       // added beyond the original task spec - backs the Edit modal's Status field
@@ -79,17 +96,27 @@ Current `OrganizationFlow.tsx` props on `<ReactFlow>`:
 This diverges from the original task brief (`fe-2026-08-23.md` §9 listed all seven props above as required `false`, and its Acceptance Criteria included "Không Zoom" / "Không Pan" / "Không Drag Node"). The four unset props were removed directly in code after the initial implementation; per the user's decision this is accepted as the current intended behavior, not a defect to fix — recorded here so the spec matches what actually ships instead of the original brief.
 
 ## Modals
-- **Create** (`CreateOrganizationModal`): multi-row table (Code/Name/Type/remove-row), "+ Add Row", parent shown read-only (as a chip) when opened from a node's `[+]`. Validation (zod): code/name/type required per row, code unique among the form's own rows (not cross-checked against already-existing stage codes), at least 1 row.
-- **Edit** (`EditOrganizationModal`): opened by clicking a node's body. Full form — Code, Name, Type, Parent (read-only), Manager (free text), Status (Active/Inactive ↔ `isActive`), Description. Does not touch `uiId`/`parentUiId`.
+- **Create** (`CreateOrganizationModal`): multi-row table (Code/Name/**Organization Type**/remove-row), "+ Add Row", parent shown read-only (as a chip) when opened from a node's `[+]`. Validation (zod): code/name required per row, code unique among the form's own rows (not cross-checked against already-existing stage codes), at least 1 row. `organizationTypeId` is optional. Submit calls `POST /api/organizations` with `{ items }` and omits `type`, then closes the modal, shows a toast, invalidates `['organizations']`, and refreshes the list.
+- **Edit** (`EditOrganizationModal`): opened by clicking a node's body. Full form — Code, Name, **Organization Type**, Parent (read-only), Manager (free text), Status (Active/Inactive ↔ `isActive`), Description. Does not touch `uiId`/`parentUiId`. Submit calls `PATCH /api/organizations` with a single-item `items` array and omits `type`.
 - Both `[+]`/`[x]` buttons on a node call `event.stopPropagation()` so they never also trigger the body-click (Edit) handler.
+- **Backend validates `organizationTypeId`** existence (task §34) — if the API returns `400 ORGANIZATION_TYPE_NOT_FOUND`, map it to the modal's Organization Type field; do not save an invalid FK client-side-only.
+
+### Organization Type Field
+Same pattern as `FRONTEND-EMPLOYEE-CREATE`'s Organization column:
+```ts
+const organizationTypeOptions = organizationTypes.map((ot) => ({ value: ot.id, label: ot.name }));
+```
+Options load once per modal open via `GET /api/organization-types` (`organizationTypeApiService.list()`, already implemented for `/organizations/types`) — reused for both Create and Edit modals, not re-fetched per row.
 
 ## Navbar User Menu
 `AppLayout`'s `Navbar` now always renders `<UserMenu />` (the avatar + dropdown with Change Password/Logout), regardless of the route's `handle.showUserMenu` value — previously only `/employees` (`showUserMenu: true`) showed the dropdown, and every other route showed a plain name span instead. This change was made directly in `AppLayout.tsx` while building this page (so `/organizations` also gets the dropdown) and now applies to every route using `AppLayout`, not just this one. `handle.showUserMenu` in `route.types.ts`/`app.routes.tsx` is no longer read anywhere — it has no effect and is a candidate for removal in a future cleanup.
 
-## Known Gaps (carried over from the implementation plan, still open)
-- No real API integration yet (`services/organization.api.ts` stubs only) — see that file's header comment for the intended `useQuery`/`useMutation` wiring.
-- `createMany`/bulk endpoints on the backend (`backend/src/modules/organization`) are not connected to this screen at all.
+## Known Gaps
+Resolved (2026-08-26): real API integration and `organizationTypeId` wiring, per the section above. Remaining, unrelated to this daily task:
+- Deleting a node client-side computes the full target+descendant `uiId` set, but until this task the delete call itself was a no-op stub. Now wired to `DELETE /api/organizations` with the full computed `ids` array (`API-ORGANIZATION-DELETE-MANY`'s Frontend Contract Notes) — verify this in implementation/testing, since it's the one mutation whose payload is derived from client-side tree math rather than a single form.
+- `manager` still has no backing directory anywhere (task did not ask for one) — the Edit modal's Manager field stays a plain text input.
 
 ## Pending Decisions
 - Whether the four now-permissive React Flow interactions (drag node, pan, wheel zoom, pinch zoom) are the final intended UX, or should be re-disabled — currently left as the user's in-code decision (see "React Flow Configuration" above).
 - Whether `/change-password`'s move to an ungated public route (see `docs/07-frontend/pages/change-password.md`) is final.
+- Whether the existing backend `type` enum field should eventually be removed from the API/DB now that `organizationTypeId` exists — not decided. The Create/Edit modals no longer expose it, but the backend column remains.

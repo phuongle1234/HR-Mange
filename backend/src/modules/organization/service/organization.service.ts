@@ -39,6 +39,7 @@ export class OrganizationService
     return {
       ...(query?.parentId !== undefined ? { parentId: query.parentId } : {}),
       ...(query?.type ? { type: query.type } : {}),
+      ...(query?.organizationTypeId ? { organizationTypeId: query.organizationTypeId } : {}),
       ...(query?.isActive !== undefined ? { isActive: query.isActive } : {}),
     };
   }

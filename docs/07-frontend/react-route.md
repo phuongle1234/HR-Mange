@@ -69,10 +69,11 @@ There is no `permission` metadata key.
 | `/login` | `LoginPage` | `AuthLayout` | no | `Login` | none |
 | `/forgot-password` | `ForgotPasswordPage` | `AuthLayout` | no | `Forgot Password` | none |
 | `/change-password` | `ChangePasswordPage` | `AuthLayout` | **no** | `Change Password` | none |
+| `/invitation/accept` | `InvitationAcceptPage` | `AuthLayout` | **no** | (no navbar) | none |
 | `/employees` | `EmployeeListPage` | `AppLayout` | yes | `Employees` | `employee.list` |
-| `/employees/create` | `EmployeeCreatePage` | `AppLayout` | yes | `Create Employee` | `employee.create` |
+| `/employees/create` | `EmployeeCreatePage` | `AppLayout` | yes | `Create Employees` | `employee.create` |
 | `/employees/:id` | `EmployeeDetailPage` | `AppLayout` | yes | `Employee Detail` | `employee.list` |
-| `/employees/:id/edit` | `EmployeeEditPage` | `AppLayout` | yes | `Edit Employee` | `employee.list` |
+| `/employees/update` | `EmployeeUpdatePage` | `AppLayout` | yes | `Update Employees` | `employee.list` |
 | `/organizations` | `OrganizationPage` | `AppLayout` | yes | `Organization` | `organization.chart` |
 | `/organizations/types` | `OrganizationTypeListPage` | `AppLayout` | yes | `Organization Types` | `organization.types` |
 | `/organizations/types/create` | `OrganizationTypeCreatePage` | `AppLayout` | yes | `Create Organization Types` | `organization.types` |
@@ -80,6 +81,11 @@ There is no `permission` metadata key.
 | `*` | `NotFoundPage` | `NotFoundLayout` | no | `Page Not Found` | none |
 
 `/change-password` moved from `AppLayout`/`AuthGuard` to `AuthLayout` (ungated) — see "Change Password Route" below for what this means in practice.
+
+**2026-08-26 changes:**
+- `/invitation/accept` is new — see `FRONTEND-INVITATION-ACCEPT`. Ungated the same way `/forgot-password`/`/change-password` are, not `PublicOnlyGuard`-gated (see that spec's Route Reference for why).
+- `/employees/create`'s content changes to a bulk table editor (`FRONTEND-EMPLOYEE-CREATE`); the path itself is unchanged.
+- `/employees/update` is new, replacing the **removed** `/employees/:id/edit` (`EmployeeEditPage`, single-record). See `FRONTEND-EMPLOYEE-EDIT` for the bulk replacement and its rationale.
 
 ## Login Route
 ```text
@@ -126,7 +132,7 @@ path: /employees/create
 component: EmployeeCreatePage
 layout: AppLayout
 authRequired: true
-title: Create Employee
+title: Create Employees
 navbarBackButton: true
 navbarBackTarget: /employees
 sidebarActiveKey: employee.create
@@ -135,6 +141,36 @@ Behavior:
 - `AuthGuard` checks authenticated user through `AuthProvider`.
 - `AppLayout` renders Navbar, Sidebar, and WrapContent.
 - `EmployeeCreatePage` renders inside WrapContent once the guard passes — no further permission check.
+- **2026-08-26:** page content is now the bulk table editor (`FRONTEND-EMPLOYEE-CREATE`); route/guard/layout are unchanged.
+
+## Employee Update Route (2026-08-26, new)
+```text
+path: /employees/update
+component: EmployeeUpdatePage
+layout: AppLayout
+authRequired: true
+title: Update Employees
+navbarBackButton: true
+navbarBackTarget: /employees
+sidebarActiveKey: employee.list
+```
+Behavior:
+- Same guard/layout pattern as the Organization Type Update route below.
+- Reads checked ids from Redux key `employee_checked`; if none exist, renders a safe empty-selection state instead of calling the API (`FRONTEND-EMPLOYEE-EDIT`).
+- Replaces the removed `/employees/:id/edit` route.
+
+## Invitation Accept Route (2026-08-26, new)
+```text
+path: /invitation/accept
+component: InvitationAcceptPage
+layout: AuthLayout
+authRequired: false
+title: (none — AuthLayout has no Navbar)
+sidebarActiveKey: none
+```
+Behavior:
+- Not gated by `AuthGuard` (no account exists yet for the visitor) and not gated by `PublicOnlyGuard` (an authenticated user must still be able to complete an invitation link).
+- Reads `token` from the URL query string; see `FRONTEND-INVITATION-ACCEPT`.
 
 ## Organization Type Routes
 ```text

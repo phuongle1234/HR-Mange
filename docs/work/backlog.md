@@ -55,6 +55,14 @@ WORK-019 (organization type contract specs)
     +--> WORK-021 (organization type frontend)
 
 WORK-020 + WORK-021 --> WORK-022 (organization type integration)
+
+WORK-023 (employee bulk / organization FK / invitations contract specs)
+    |
+    +--> WORK-024 (employee bulk / organization FK / invitations backend)
+    |
+    +--> WORK-025 (employee bulk / organization FK / invitations frontend)
+
+WORK-024 + WORK-025 --> WORK-026 (employee bulk / organization FK / invitations integration)
 ```
 
 ## Backlog Table
@@ -97,3 +105,16 @@ WORK-020 + WORK-021 --> WORK-022 (organization type integration)
 Notes:
 - `WORK-020` and `WORK-021` can run in parallel because both depend only on the completed contract in `WORK-019`.
 - `WORK-022` starts only after both backend and frontend agents finish their implementation work.
+
+## Employee Bulk / Organization FK / Invitations Parallel Work Items
+| ID | Title | Status | Depends On | Primary Specs |
+| --- | --- | --- | --- | --- |
+| WORK-023 | Employee bulk / Organization FK / Invitations contract specs | **IMPLEMENTED** | 2026-08-26 daily task | `DB-EMPLOYEE`, `DB-ORGANIZATION`, `DB-ORGANIZATION-TYPE`, `DB-INVITATION`, `API-EMPLOYEE-BULK-*`, `API-ORGANIZATION-*`, `API-INVITATIONS-*`, `FRONTEND-EMPLOYEE-*`, `FRONTEND-ORGANIZATION-CHART`, `FRONTEND-INVITATION-ACCEPT` |
+| WORK-024 | Employee bulk / Organization FK / Invitations backend | APPROVED | WORK-023 | `docs/04-database/entities/{employee,organization,invitation}.md`, `docs/06-api/{employee,organization,invitations}/*.md` |
+| WORK-025 | Employee bulk / Organization FK / Invitations frontend | APPROVED | WORK-023 | `docs/06-api/{employee,organization,invitations}/*.md`, `docs/07-frontend/pages/{employee-list,employee-create,employee-edit,organization-chart,invitation-accept}.md` |
+| WORK-026 | Employee bulk / Organization FK / Invitations integration | DRAFT | WORK-024, WORK-025 | Backend/frontend contract specs from `WORK-023` |
+
+Notes:
+- `WORK-024` and `WORK-025` can run in parallel because both depend only on the completed contract in `WORK-023` — the two AI agents the user asked to work at the same time.
+- `WORK-026` starts only after both backend and frontend agents finish their implementation work.
+- Plan: `docs/09-workflow/plans/employee-organization-invitation-parallel-plan.md`.

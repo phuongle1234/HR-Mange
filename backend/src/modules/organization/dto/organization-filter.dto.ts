@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsInt, IsOptional } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsUUID } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { OrganizationChartType } from '@prisma/client';
 
@@ -15,6 +15,10 @@ export class OrganizationFilterDto {
   @IsOptional()
   @IsEnum(OrganizationChartType, { message: 'type must be one of COMPANY, BRANCH, DIVISION, DEPARTMENT, TEAM.' })
   type?: OrganizationChartType;
+
+  @IsOptional()
+  @IsUUID()
+  organizationTypeId?: string;
 
   @IsOptional()
   // Query params arrive as strings - `@Type(() => Boolean)` would use the

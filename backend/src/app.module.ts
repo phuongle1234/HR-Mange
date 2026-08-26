@@ -10,7 +10,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { OrganizationTypeModule } from './modules/organization-type/organization-type.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { MailModule } from './common/mail/mail.module';
 
 @Module({
   imports: [
@@ -18,10 +20,12 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     EventEmitterModule.forRoot(),
     LoggerModule,
     PrismaModule,
+    MailModule,
     AuthModule,
     EmployeeModule,
     OrganizationModule,
     OrganizationTypeModule,
+    InvitationsModule,
     AuditLogModule,
   ],
 })
