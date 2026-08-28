@@ -14,6 +14,7 @@ import {
   Select,
   TextField as MuiTextField,
 } from '@mui/material';
+import { useApiFieldErrors } from '../../../shared/hooks/useApiFieldErrors';
 import { editOrganizationFormSchema } from '../schemas/organization.schemas';
 import type { EditOrganizationFormValues } from '../schemas/organization.schemas';
 import type { OrganizationStage } from '../types/organization.types';
@@ -23,6 +24,7 @@ interface EditOrganizationModalProps {
   organization: OrganizationStage | null;
   parent: OrganizationStage | null;
   organizationTypeOptions: Array<{ value: string; label: string }>;
+  apiError?: unknown;
   isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (values: EditOrganizationFormValues) => void;
@@ -37,6 +39,10 @@ const DEFAULT_VALUES: EditOrganizationFormValues = {
   description: '',
 };
 
+function mapEditOrganizationFieldPath(fieldPath: string): string {
+  return fieldPath.replace(/^items\.0\./, '');
+}
+
 /**
  * Full edit form (code/name/organization type/manager/status/description), parent
  * readonly, uiId/parentUiId never touched here - matches the "Edit
@@ -45,12 +51,13 @@ const DEFAULT_VALUES: EditOrganizationFormValues = {
  * this is an edit form rather than the read-only Detail modal described
  * earlier in the same task file).
  */
-export function EditOrganizationModal({ organization, parent, organizationTypeOptions, isSubmitting = false, onCancel, onSubmit }: EditOrganizationModalProps) {
+export function EditOrganizationModal({ organization, parent, organizationTypeOptions, apiError, isSubmitting = false, onCancel, onSubmit }: EditOrganizationModalProps) {
   const {
     control,
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<EditOrganizationFormValues>({
     resolver: zodResolver(editOrganizationFormSchema),
@@ -69,6 +76,7 @@ export function EditOrganizationModal({ organization, parent, organizationTypeOp
       });
     }
   }, [organization, reset]);
+  useApiFieldErrors(apiError, setError, { mapFieldPath: mapEditOrganizationFieldPath });
 
   function onValid(values: EditOrganizationFormValues) {
     onSubmit(values);
@@ -96,7 +104,10 @@ export function EditOrganizationModal({ organization, parent, organizationTypeOp
             {...register('name')}
           />
 
-          <Controller control={control} name="organizationTypeId" render={({ field }) => <ReactSelect classNamePrefix="react-select" isClearable options={organizationTypeOptions} value={organizationTypeOptions.find((option) => option.value === field.value) ?? null} onChange={(option) => field.onChange(option?.value ?? null)} />} />
+          <div>
+            <Controller control={control} name="organizationTypeId" render={({ field }) => <ReactSelect classNamePrefix="react-select" isClearable options={organizationTypeOptions} value={organizationTypeOptions.find((option) => option.value === field.value) ?? null} onChange={(option) => field.onChange(option?.value ?? null)} />} />
+            {errors.organizationTypeId?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{errors.organizationTypeId.message}</p>}
+          </div>
 
           <MuiTextField label="Parent" fullWidth disabled value={parent?.name ?? '—'} />
 

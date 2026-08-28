@@ -24,6 +24,7 @@ src/shared/api/api-error.ts
 src/shared/api/api-response.ts
 src/shared/api/http-status.ts
 src/shared/api/base-api.service.ts
+src/shared/hooks/useApiFieldErrors.ts
 src/features/employee/services/employee.api.ts
 src/features/organization-type/services/organization-type.api.ts
 ```
@@ -112,6 +113,7 @@ Responsibilities:
 - Return response data consistently (unwrap the `{success, message, data, meta}` envelope).
 - Normalize API errors to `FrontendApiError`.
 - Preserve enough safe context for UI mapping, such as code, message, status, and field errors.
+- Show a `react-toastify` error toast for non-401 API failures using the normalized safe message; page-level mutation handlers should not emit a second error toast for the same rejected API call.
 
 Unauthorized behavior:
 - `401` clears the stored token (dispatch `clearAuth()`/`setUnauthenticated()`) and redirects to `/login`. There is no refresh token in this phase — do not retry.
@@ -132,7 +134,8 @@ FrontendApiError
 Rendering rules:
 - UI may render safe `message` only after mapping.
 - UI must not render `originalError`.
-- Field errors map to React Hook Form `setError` when the page uses forms.
+- Field errors map to React Hook Form `setError` through `src/shared/hooks/useApiFieldErrors.ts` / `applyApiFieldErrors(...)` when the page uses forms.
+- Form pages whose field paths differ from the API payload path may pass a field-path mapper (for example Organization create maps `items.0.name` from the API to `rows.0.name` in the modal form; Organization edit maps `items.0.name` to `name`).
 - Unknown errors use a safe generic message.
 
 Known employee error mapping examples:

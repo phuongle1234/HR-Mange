@@ -107,6 +107,8 @@ Reset React Hook Form rows from returned data (organizationId included)
 If the endpoint returns `EMPLOYEE_NOT_FOUND`, render a page-level error and offer navigation back to list.
 
 ## Table Form Layout
+Required Employee Code, First Name, Last Name, Email, and Status columns show the shared required marker in the table header. The `phone` column uses a number input.
+
 Same columns as `FRONTEND-EMPLOYEE-CREATE`'s table (`employeeCode`, `firstName`, `lastName`, `email`, `phone`, `position`, `status`, `organization` via `react-select`), prefilled from the fetched rows. The `id` field is hidden form data, not editable. `userId` is never shown/editable on this page — it is set only by the Invitation-accept flow.
 
 Page action bar:

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { store } from '../../store';
 import { clearAuth } from '../../store/auth/auth.slice';
 import { clearStoredToken } from '../auth/token-storage';
@@ -37,6 +38,8 @@ apiClient.interceptors.response.use(
     if (normalized.status === HttpStatus.UNAUTHORIZED) {
       clearStoredToken();
       store.dispatch(clearAuth());
+    } else {
+      toast.error(normalized.message, { position: 'top-right' });
     }
 
     return Promise.reject(normalized);

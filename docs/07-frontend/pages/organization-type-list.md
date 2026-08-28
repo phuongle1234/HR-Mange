@@ -47,13 +47,13 @@ src/shared/hooks/useListQueryState.ts
 
 ## Responsibilities
 This spec owns:
-- Render searchable, paginated organization type table.
+- Render searchable, paginated organization type table, including a per-row delete action icon.
 - Let the user change page size through the shared toolbar limit selector.
 - Let the user sort supported columns through the shared sortable table-header control.
 - Manage checked row ids locally until the user chooses Update.
 - Store checked ids in Redux only when navigating to the bulk update page.
 - Open a reusable context menu from right-click.
-- Confirm and call bulk delete once with selected ids.
+- Confirm before every delete, then call the delete endpoint once — with the checked ids for the context-menu path, or with the single row's id for the row-icon path.
 
 This spec must not own:
 - Backend validation.
@@ -80,7 +80,8 @@ Endpoint references:
 | Search/page/limit/sort state | `useListQueryState` | Reset page to `1` when search, limit, or sort changes. |
 | Checked ids on list | Local React state | Do not store in Redux while merely checking rows. |
 | Checked ids for update handoff | Redux Toolkit | Store under dedicated key `organization_type_checked` right before navigating to update page. |
-| Delete confirm popup state | Local React state | Open only when selected ids exist. |
+| Delete confirm popup state | Local React state | Bulk path opens only when checked ids exist; the per-row icon path opens for its own row regardless of the checked set. |
+| Row delete target | Local React state (`rowToDelete`) | `null` means the open popup is the bulk delete over checked ids; a value means the row icon was clicked and only that row is deleted. Both paths share one `ConfirmDialog` instance rather than rendering two dialogs. |
 | Context menu open/position | `ContextMenu` local state | Shared component owns menu mechanics. |
 
 ## Table Layout
@@ -93,6 +94,7 @@ Columns:
 | `description` | API data | Render `-` when null. |
 | `createdAt` | API data | Localized display. |
 | `updatedAt` | API data | Localized display. |
+| actions | — | Per-row delete icon button (MUI `DeleteIcon`), destructive styling. Opens the shared delete confirmation popup for that single row; disabled while the delete mutation is pending. |
 
 Sortable columns:
 - `name`
@@ -102,6 +104,7 @@ Sortable columns:
 Non-sortable columns:
 - checkbox
 - `description`
+- actions
 
 Sort behavior:
 - Sortable headers use shared `SortableTableHeader`.
@@ -118,11 +121,13 @@ Loading and empty states must render inside valid table structure:
 
 ```tsx
 <tbody>
-  {isLoading && <tr><td colSpan={5}><LoadingState /></td></tr>}
-  {!isLoading && items.length === 0 && <tr><td colSpan={5}><EmptyState /></td></tr>}
+  {isLoading && <tr><td colSpan={6}><LoadingState /></td></tr>}
+  {!isLoading && items.length === 0 && <tr><td colSpan={6}><EmptyState /></td></tr>}
   {items.map(...)}
 </tbody>
 ```
+
+`colSpan` is `6` (checkbox, `name`, `description`, `createdAt`, `updatedAt`, actions).
 
 ## Context Menu
 Open source:
@@ -137,25 +142,50 @@ Items:
 | `delete` | Delete | at least one id checked | Open delete confirmation popup. |
 
 ## Delete Flow
+There are two entry points into the same confirmation popup and the same endpoint. **Neither may call the delete API before the user confirms** — the click only opens the popup.
+
+Bulk delete (context menu):
 ```text
 User checks rows
     ↓
 User right-clicks table and selects Delete
     ↓
-ConfirmDialog opens
+Set rowToDelete = null, clear popup error, open ConfirmDialog
     ↓
 User confirms
     ↓
-DELETE /api/organization-types with { ids }
+DELETE /api/organization-types with { ids: checkedIds }
     ↓
 Invalidate ['organization-types']
     ↓
 Clear local checked ids
 ```
 
+Single-row delete (row action icon):
+```text
+User clicks the row's delete icon
+    ↓
+Set rowToDelete = that row, clear popup error, open ConfirmDialog
+    ↓
+User confirms
+    ↓
+DELETE /api/organization-types with { ids: [rowToDelete.id] }
+    ↓
+Invalidate ['organization-types']
+    ↓
+Remove that id from local checked ids (so a later bulk delete cannot send a stale id)
+```
+
+Shared requirements for both paths:
+- The ids sent are captured once at confirm time, so a state change while the mutation is pending cannot alter the in-flight request.
+- The popup title/message reflect which path opened it: single-row shows the record's `name`; bulk shows the checked count.
+- Cancel closes the popup, clears `rowToDelete`, and clears the popup error — and is ignored while the mutation is pending.
+- On success both paths show a top-right toast and invalidate `['organization-types']`.
+- On failure the popup stays open and renders the safe error message; no local selection state is cleared.
+
 ## Loading State
 - Query loading renders `LoadingState` inside table body.
-- Delete mutation pending disables context menu delete action and confirm buttons.
+- Delete mutation pending disables the context menu delete action, the per-row delete icons, and the confirm/cancel buttons.
 - Delete confirmation uses shared `ConfirmDialog`; the dialog can be dragged by its header area and closes on outside click when no mutation is pending.
 
 ## Toolbar

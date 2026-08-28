@@ -10,6 +10,9 @@ import { useDispatch } from 'react-redux';
 import { Button } from '../../../shared/components/Button';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { ContextMenu } from '../../../shared/components/ContextMenu';
+import { RequiredHeader } from '../../../shared/components/RequiredHeader';
+import { normalizeApiError } from '../../../shared/api/api-error';
+import { useApplyApiFieldErrors } from '../../../shared/hooks/useApiFieldErrors';
 import { useGridInputNavigation } from '../../../shared/hooks/useGridInputNavigation';
 import { clearEmployeeCheckedIds } from '../../../store/employeeSelection/employeeSelectionSlice';
 import { organizationApiService } from '../../organization/services/organization.api';
@@ -62,6 +65,7 @@ export function EmployeeCreatePage() {
     mode: 'onChange',
     defaultValues: { items: [createEmptyRow()] },
   });
+  const applyFieldErrors = useApplyApiFieldErrors(setError);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const organizationOptions = (organizationsQuery.data ?? []).map((organization) => ({ value: organization.id, label: organization.name }));
@@ -107,9 +111,14 @@ export function EmployeeCreatePage() {
       toast.success('Employees created successfully.', { position: 'top-right' });
       navigate('/employees');
     } catch (error) {
-      const message = (error as Error).message || 'Unable to create employees.';
+      setPendingPayload(null)
+      const apiError = normalizeApiError(error);
+      const message = apiError.message || 'Unable to create employees.';
+      const hasFieldErrors = applyFieldErrors(apiError);
       setSubmitError(message);
-      setError('items', { message });
+      if (!hasFieldErrors) {
+        setError('items', { message });
+      }
     }
   }
 
@@ -131,18 +140,18 @@ export function EmployeeCreatePage() {
                   <Button type="button" variant="secondary" onClick={() => append(createEmptyRow())}>Add Row</Button>
                 </div>
               </div>
-              <div className="overflow-auto">
+              <div className="h-[calc(100vh-190px)] overflow-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="w-12 px-4 py-3"><input type="checkbox" aria-label="Check all rows" checked={allChecked} onChange={toggleAllRows} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" /></th>
-                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Employee Code</th>
-                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">First Name</th>
-                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Last Name</th>
-                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Email</th>
+                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500"><RequiredHeader label="Employee Code" /></th>
+                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500"><RequiredHeader label="First Name" /></th>
+                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500"><RequiredHeader label="Last Name" /></th>
+                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500"><RequiredHeader label="Email" /></th>
                       <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Phone</th>
                       <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Position</th>
-                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Status</th>
+                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500"><RequiredHeader label="Status" /></th>
                       <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Organization</th>
                     </tr>
                   </thead>
@@ -154,7 +163,7 @@ export function EmployeeCreatePage() {
                         <td className="px-4 py-4 align-top"><input type="text" aria-label={`First name row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.firstName` as const)} {...getGridInputProps(index, 2)} />{errors.items?.[index]?.firstName && <p role="alert" className="mt-1 text-xs font-semibold text-danger-600">{errors.items[index]?.firstName?.message}</p>}</td>
                         <td className="px-4 py-4 align-top"><input type="text" aria-label={`Last name row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.lastName` as const)} {...getGridInputProps(index, 3)} />{errors.items?.[index]?.lastName && <p role="alert" className="mt-1 text-xs font-semibold text-danger-600">{errors.items[index]?.lastName?.message}</p>}</td>
                         <td className="px-4 py-4 align-top"><input type="email" aria-label={`Email row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.email` as const)} {...getGridInputProps(index, 4)} />{errors.items?.[index]?.email && <p role="alert" className="mt-1 text-xs font-semibold text-danger-600">{errors.items[index]?.email?.message}</p>}</td>
-                        <td className="px-4 py-4 align-top"><input type="text" aria-label={`Phone row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.phone` as const)} {...getGridInputProps(index, 5)} /></td>
+                        <td className="px-4 py-4 align-top"><input type="number" aria-label={`Phone row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.phone` as const)} {...getGridInputProps(index, 5)} /></td>
                         <td className="px-4 py-4 align-top"><input type="text" aria-label={`Position row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.position` as const)} {...getGridInputProps(index, 6)} /></td>
                         <td className="px-4 py-4 align-top">
                           <select aria-label={`Status row ${index + 1}`} className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" {...register(`items.${index}.status` as const)} {...getGridInputProps(index, 7)}>

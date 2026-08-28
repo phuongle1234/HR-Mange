@@ -96,9 +96,11 @@ Current `OrganizationFlow.tsx` props on `<ReactFlow>`:
 This diverges from the original task brief (`fe-2026-08-23.md` §9 listed all seven props above as required `false`, and its Acceptance Criteria included "Không Zoom" / "Không Pan" / "Không Drag Node"). The four unset props were removed directly in code after the initial implementation; per the user's decision this is accepted as the current intended behavior, not a defect to fix — recorded here so the spec matches what actually ships instead of the original brief.
 
 ## Modals
-- **Create** (`CreateOrganizationModal`): multi-row table (Code/Name/**Organization Type**/remove-row), "+ Add Row", parent shown read-only (as a chip) when opened from a node's `[+]`. Validation (zod): code/name required per row, code unique among the form's own rows (not cross-checked against already-existing stage codes), at least 1 row. `organizationTypeId` is optional. Submit calls `POST /api/organizations` with `{ items }` and omits `type`, then closes the modal, shows a toast, invalidates `['organizations']`, and refreshes the list.
+- **Create** (`CreateOrganizationModal`): multi-row table (Code/Name/**Organization Type**/remove-row), "+ Add Row", parent shown read-only (as a chip) when opened from a node's `[+]`. Required Code and Name headers show the shared required marker. Validation (zod): code/name required per row, code unique among the form's own rows (not cross-checked against already-existing stage codes), at least 1 row. `organizationTypeId` is optional. Submit calls `POST /api/organizations` with `{ items }` and omits `type`, then closes the modal, shows a toast, invalidates `['organizations']`, and refreshes the list.
 - **Edit** (`EditOrganizationModal`): opened by clicking a node's body. Full form — Code, Name, **Organization Type**, Parent (read-only), Manager (free text), Status (Active/Inactive ↔ `isActive`), Description. Does not touch `uiId`/`parentUiId`. Submit calls `PATCH /api/organizations` with a single-item `items` array and omits `type`.
+- API mutation errors are normalized by the shared API client. Non-401 failures show one global toast, while modal field errors are applied through `useApiFieldErrors`: create maps API `items[n].*` paths to form `rows[n].*`; edit maps API `items.0.*` paths to the single-record form fields.
 - Both `[+]`/`[x]` buttons on a node call `event.stopPropagation()` so they never also trigger the body-click (Edit) handler.
+- Clicking a node's `[x]` opens the shared `ConfirmDialog`; `DELETE /api/organizations` is called only after the user confirms. The page captures the target organization id plus descendant ids when `[x]` is clicked, so a later state refresh cannot change the in-flight delete payload.
 - **Backend validates `organizationTypeId`** existence (task §34) — if the API returns `400 ORGANIZATION_TYPE_NOT_FOUND`, map it to the modal's Organization Type field; do not save an invalid FK client-side-only.
 
 ### Organization Type Field
@@ -113,7 +115,6 @@ Options load once per modal open via `GET /api/organization-types` (`organizatio
 
 ## Known Gaps
 Resolved (2026-08-26): real API integration and `organizationTypeId` wiring, per the section above. Remaining, unrelated to this daily task:
-- Deleting a node client-side computes the full target+descendant `uiId` set, but until this task the delete call itself was a no-op stub. Now wired to `DELETE /api/organizations` with the full computed `ids` array (`API-ORGANIZATION-DELETE-MANY`'s Frontend Contract Notes) — verify this in implementation/testing, since it's the one mutation whose payload is derived from client-side tree math rather than a single form.
 - `manager` still has no backing directory anywhere (task did not ask for one) — the Edit modal's Manager field stays a plain text input.
 
 ## Pending Decisions

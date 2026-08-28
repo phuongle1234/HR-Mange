@@ -63,6 +63,17 @@ WORK-023 (employee bulk / organization FK / invitations contract specs)
     +--> WORK-025 (employee bulk / organization FK / invitations frontend)
 
 WORK-024 + WORK-025 --> WORK-026 (employee bulk / organization FK / invitations integration)
+                                  [all three PENDING - parked 2026-08-28, resume later]
+
+WORK-027 (workflow module contract specs)
+    |
+    +--> WORK-028 (workflow core backend: schema, definition CRUD, steps, submit, reads)
+    |
+    +--> WORK-029 (workflow actions, events, Socket.IO, notification backend)
+    |
+    +--> WORK-030 (workflow frontend, React Flow, notification UI)
+
+WORK-028 + WORK-029 + WORK-030 --> WORK-031 (workflow module integration)
 ```
 
 ## Backlog Table
@@ -118,3 +129,20 @@ Notes:
 - `WORK-024` and `WORK-025` can run in parallel because both depend only on the completed contract in `WORK-023` — the two AI agents the user asked to work at the same time.
 - `WORK-026` starts only after both backend and frontend agents finish their implementation work.
 - Plan: `docs/09-workflow/plans/employee-organization-invitation-parallel-plan.md`.
+- **Status (2026-08-28): `WORK-024`, `WORK-025`, and `WORK-026` are deliberately parked as pending** at the user's decision, to be resumed later. `WORK-024` is partially implemented in the worktree (Employee bulk endpoints, Organization FK, Invitations module) but is missing the accept-invitation endpoint, the Mailpit container, and `.http` files. Do not assume any of the three is finished.
+
+## Workflow Module Parallel Work Items (3 agents)
+| ID | Title | Status | Depends On | Primary Specs |
+| --- | --- | --- | --- | --- |
+| WORK-027 | Workflow Module contract specs | **IMPLEMENTED** | — | `docs/09-workflow/plans/workflow-module/workflow-contract.md`, `workflow-master-spec.md`, `workflow-integration-plan.md` |
+| WORK-028 | Workflow core backend (schema, definition CRUD, steps, submit, reads) | APPROVED | WORK-027 | `workflow-contract.md` §2, §3, §5.1, §5.4–5.6, §7.1, §7.4; prompt: `plans/workflow-module/agent-1-prompt.md` |
+| WORK-029 | Workflow action engine, events, Socket.IO, notification backend | APPROVED | WORK-027 | `workflow-contract.md` §4, §5.2–5.3, §6, §7, §8, §9, §10; prompt: `plans/workflow-module/agent-2-prompt.md` |
+| WORK-030 | Workflow frontend, React Flow, notification UI | APPROVED | WORK-027 | `workflow-contract.md` §1, §3, §5, §9.2–9.5, §12, §13, §14; prompt: `plans/workflow-module/agent-3-prompt.md` |
+| WORK-031 | Workflow Module integration | DRAFT | WORK-028, WORK-029, WORK-030 | `workflow-integration-plan.md` |
+
+Notes:
+- `WORK-028`, `WORK-029`, and `WORK-030` run **fully in parallel** — all three depend only on the frozen contract in `WORK-027`. `WORK-029` mocks Prisma types and the permission function; `WORK-030` mocks the whole API and socket layer behind one flag. Neither waits on `WORK-028`.
+- File ownership is non-overlapping by construction: `WORK-028` single-pass edits `schema.prisma`, `app.module.ts`, `error-code.constant.ts`, and `app.exception.ts` **including `WORK-029`'s entries**, so only `workflow.module.ts` needs a manual touch at integration.
+- Merge order is `WORK-028` → `WORK-029` → `WORK-030`, each rebased onto `main` first.
+- No automated test work item exists for this module — the task brief excludes unit, integration, and E2E test scope. `WORK-031` verifies manually.
+- Plan folder: `docs/09-workflow/plans/workflow-module/`.

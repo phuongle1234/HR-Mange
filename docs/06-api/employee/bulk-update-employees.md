@@ -127,7 +127,7 @@ At least one mutable field must be present per item (same reusable-DTO-validator
 - Mutation key: `['employees', 'bulk-update']`.
 - On success, invalidate `['employees']` and `['employees', 'by-ids', ids]`.
 - Update page redirects to `/employees`.
-- Field errors for `items[n].*` must be mapped to the corresponding table row/cell input, including the `react-select` Organization cell for `items[n].organizationId`.
+- Field errors arrive as granular dot paths (`items.0.employeeCode`, `items.1.email`, `items.2.organizationId`), one entry per offending row+field, and must be mapped to the corresponding table row/cell input — including the `react-select` Organization cell. See `API-ERROR-RESPONSE` → "Bulk Endpoint Field Error Paths". Note the wire format is `items.0.email` (dot + index), not `items[0].email`.
 
 ## Ambiguities
 None.

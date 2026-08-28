@@ -5,16 +5,31 @@ export interface ApiSuccessResponse<T> {
   meta: Record<string, unknown> | null;
 }
 
+export interface ApiErrorResponse {
+  statusCode: number;
+  code: string;
+  message: string;
+  fieldErrors?: Record<string, string[]>;
+  requestId?: string;
+}
+
 export interface SuccessResponseInput<T> {
   data: T;
   message: string;
   meta?: Record<string, unknown> | null;
 }
 
+export interface ErrorResponseInput {
+  statusCode: number;
+  code: string;
+  message: string;
+  fieldErrors?: Record<string, string[]>;
+  requestId?: string;
+}
+
 /**
- * Builds the API-CONVENTIONS success envelope: { success, message, data, meta }.
- * This is the ONLY place that shape should be constructed, so controllers
- * never hand-roll the response envelope.
+ * Builds API-CONVENTIONS response envelopes. Controllers use `success`;
+ * GlobalHttpExceptionFilter uses `error`, so response shapes stay centralized.
  */
 export class ResponseHelper {
   static success<T>({ data, message, meta = null }: SuccessResponseInput<T>): ApiSuccessResponse<T> {
@@ -23,6 +38,16 @@ export class ResponseHelper {
       message,
       data,
       meta,
+    };
+  }
+
+  static error({ statusCode, code, message, fieldErrors, requestId }: ErrorResponseInput): ApiErrorResponse {
+    return {
+      statusCode,
+      code,
+      message,
+      ...(fieldErrors ? { fieldErrors } : {}),
+      ...(requestId ? { requestId } : {}),
     };
   }
 }

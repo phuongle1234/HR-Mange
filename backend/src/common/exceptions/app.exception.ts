@@ -133,6 +133,12 @@ export class OrganizationTypeNameExistsException extends AppException {
   }
 }
 
+export class InvitationNotFoundException extends AppException {
+  constructor(id: string) {
+    super(ErrorCode.INVITATION_NOT_FOUND, `Invitation with id "${id}" was not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
 export class InvitationTokenInvalidException extends AppException {
   constructor() {
     super(ErrorCode.INVITATION_TOKEN_INVALID, 'Invitation token is invalid.', HttpStatus.NOT_FOUND);

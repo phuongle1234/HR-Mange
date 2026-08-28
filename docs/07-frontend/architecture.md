@@ -54,7 +54,8 @@ src
 │   │   └── Breadcrumb.tsx
 │   ├── hooks
 │   │   ├── useDebounce.ts
-│   │   └── useListQueryState.ts
+│   │   ├── useListQueryState.ts
+│   │   └── useApiFieldErrors.ts
 │   ├── utils
 │   └── validation
 └── features
@@ -72,6 +73,7 @@ Rules:
 - Layout components own navbar/sidebar/wrap content structure; pages do not recreate layout.
 - Reusable list-page primitives such as `SearchAndFilterBar`, `SortableTableHeader`, `Pagination`, and `ResponsiveGrid` belong in `shared/components` and are intended to be composed by multiple list pages.
 - Reusable list-page state behavior such as `search`, `page`, `limit`, `sortBy`, `sortOrder`, and matching handlers belongs in `shared/hooks/useListQueryState.ts`.
+- Reusable API field-error mapping belongs in `shared/hooks/useApiFieldErrors.ts`; pages/forms use it to map normalized `fieldErrors` onto React Hook Form fields instead of duplicating `setError` loops.
 - Debounced values for query inputs use `shared/hooks/useDebounce.ts`, implemented with `lodash.debounce`.
 
 ## Provider Tree
@@ -202,7 +204,7 @@ Rules:
 | Auth form values (including invitation-accept) | React Hook Form |
 | Search/filter/page UI state | Local React state or approved URL search params |
 | Modal/popup open state | Local React state |
-| Toasts | `react-toastify` |
+| Toasts | `react-toastify`; API failure toasts are emitted by the shared Axios response interceptor, while pages keep success toasts and field/form error placement. |
 
 Rules:
 - Do not store server response lists/details in Redux.
@@ -257,8 +259,10 @@ Rules:
 
 ## Error Handling
 - Field-level errors render near fields.
+- API `fieldErrors` are mapped via `useApiFieldErrors` / `applyApiFieldErrors` and may transform field paths when API payload names differ from form state names.
 - Form-level errors render near form actions or inside confirm popup when mutation fails after confirmation.
 - Page-level errors render in wrap content with retry where applicable.
+- Non-401 API failures show one global error toast from `api-client.ts`; do not duplicate an error toast in page `catch` blocks for the same request.
 - Do not render raw backend error object.
 - Do not log secrets or credentials.
 

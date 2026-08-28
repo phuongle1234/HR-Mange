@@ -1,5 +1,6 @@
-import type { FieldValues, Path, UseFormSetError } from 'react-hook-form';
+import type { FieldValues, UseFormSetError } from 'react-hook-form';
 import type { FrontendApiError } from '../api/api-error';
+import { applyApiFieldErrors } from '../hooks/useApiFieldErrors';
 
 /**
  * Apply every field returned in `FrontendApiError.fieldErrors` (VALIDATION_ERROR
@@ -10,17 +11,5 @@ export function applyFieldErrors<T extends FieldValues>(
   error: FrontendApiError,
   setError: UseFormSetError<T>,
 ): boolean {
-  if (!error.fieldErrors) {
-    return false;
-  }
-
-  let applied = false;
-  for (const [field, messages] of Object.entries(error.fieldErrors)) {
-    if (messages && messages.length > 0) {
-      setError(field as Path<T>, { type: 'server', message: messages[0] });
-      applied = true;
-    }
-  }
-
-  return applied;
+  return applyApiFieldErrors(error, setError);
 }

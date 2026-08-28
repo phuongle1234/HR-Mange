@@ -7,11 +7,13 @@ import { Button } from '../../../shared/components/Button';
 import { ConfirmDialog, ReviewRow } from '../../../shared/components/ConfirmDialog';
 import { ContextMenu } from '../../../shared/components/ContextMenu';
 import { FullPageLoadingOverlay } from '../../../shared/components/FullPageLoadingOverlay';
+import { RequiredHeader } from '../../../shared/components/RequiredHeader';
 import { useGridInputNavigation } from '../../../shared/hooks/useGridInputNavigation';
-import type { FrontendApiError } from '../../../shared/api/api-error';
+import { normalizeApiError } from '../../../shared/api/api-error';
+import { useApplyApiFieldErrors } from '../../../shared/hooks/useApiFieldErrors';
 import { useCreateOrganizationTypesMutation } from '../hooks/useCreateOrganizationTypesMutation';
 import { DEFAULT_ORGANIZATION_TYPE_CREATE_VALUES, organizationTypeCreateSchema, type OrganizationTypeCreateFormValues } from '../schemas/organization-type.schema';
-import { applyOrganizationTypeFieldErrors, buildCreateOrganizationTypesPayload } from '../utils/organization-type-form';
+import { buildCreateOrganizationTypesPayload } from '../utils/organization-type-form';
 import type { CreateOrganizationTypesPayload } from '../types/organization-type.types';
 
 export function OrganizationTypeCreatePage() {
@@ -23,6 +25,7 @@ export function OrganizationTypeCreatePage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const { control, register, handleSubmit, setError, formState: { errors, isValid } } = useForm<OrganizationTypeCreateFormValues>({ resolver: zodResolver(organizationTypeCreateSchema), mode: 'onChange', defaultValues: DEFAULT_ORGANIZATION_TYPE_CREATE_VALUES });
+  const applyFieldErrors = useApplyApiFieldErrors(setError);
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const allChecked = fields.length > 0 && fields.every((field) => checkedRows.includes(field.id));
 
@@ -55,8 +58,8 @@ export function OrganizationTypeCreatePage() {
       toast.success('Organization types created successfully.', { position: 'top-right' });
       navigate('/organizations/types');
     } catch (error) {
-      const apiError = error as FrontendApiError;
-      applyOrganizationTypeFieldErrors(apiError, setError);
+      const apiError = normalizeApiError(error);
+      applyFieldErrors(apiError);
       setConfirmError(apiError.message);
     }
   }
@@ -80,7 +83,7 @@ export function OrganizationTypeCreatePage() {
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="w-12 px-4 py-3"><input type="checkbox" aria-label="Check all rows" checked={allChecked} onChange={toggleAllRows} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" /></th>
-                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Name</th>
+                      <th className="px-4 py-3 text-xs font-black uppercase text-slate-500"><RequiredHeader label="Name" /></th>
                       <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Description</th>
                     </tr>
                   </thead>

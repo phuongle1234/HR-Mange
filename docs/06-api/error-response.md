@@ -25,11 +25,34 @@ Draft shape:
 }
 ```
 
+Backend construction rule: `GlobalHttpExceptionFilter` is the only layer that writes the error response to Express, and it must build the body through `ResponseHelper.error(...)` instead of hand-rolling the JSON object inline. This keeps success and error envelope construction centralized in `backend/src/common/helpers/response.helper.ts`.
+
 Rules:
 - `message` must be safe to display only after frontend mapping.
 - `fieldErrors` is optional.
 - `requestId` is optional until correlation ID convention is approved.
 - Do not include stack traces in client responses.
+
+## Bulk Endpoint Field Error Paths
+Every endpoint accepting an `items[]` array (create-many, update-many) must report validation errors as **granular per-row paths**, so the client can highlight the exact cell:
+
+```json
+{
+  "statusCode": 400,
+  "code": "VALIDATION_ERROR",
+  "message": "Validation failed.",
+  "fieldErrors": {
+    "items.0.employeeCode": ["Employee code is already in use."],
+    "items.1.email": ["Email is already in use."]
+  }
+}
+```
+
+- Path format is `items.<zeroBasedIndex>.<fieldName>`, dot-separated. Do not emit `items[0].employeeCode` or a single coarse `items` entry.
+- One entry per offending row + field; a row failing two fields produces two entries.
+- Nested DTO/syntax errors already produce this shape automatically via `validationExceptionFactory`'s recursion over `error.children`.
+- Array-level constraints (batched uniqueness/FK checks attached to `items` itself) must report through `recordBulkFieldError(...)` in `backend/src/common/validators/bulk-field-error-collector.ts`, which `validationExceptionFactory` merges in, replacing the coarse `items` entry. See `docs/09-workflow/memory.md` → "Bulk API Validation Error Format" for the full rule and the reasons per-item validators are not used (N+1 queries, cannot see sibling rows).
+- **Scope:** this applies to `400 VALIDATION_ERROR`. A `409` conflict raised later by a database unique constraint (race condition) has no row index available — Prisma reports only the violating field — so `409` bodies remain coarse.
 
 ## Common Error Codes
 | Code | Status | Meaning |

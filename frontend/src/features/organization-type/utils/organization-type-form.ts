@@ -1,5 +1,3 @@
-import type { FieldValues, Path, UseFormSetError } from 'react-hook-form';
-import type { FrontendApiError } from '../../../shared/api/api-error';
 import type {
   CreateOrganizationTypesPayload,
   OrganizationType,
@@ -41,18 +39,4 @@ export function mapOrganizationTypesToUpdateFormValues(items: OrganizationType[]
       description: item.description ?? '',
     })),
   };
-}
-
-export function applyOrganizationTypeFieldErrors<T extends FieldValues>(error: FrontendApiError, setError: UseFormSetError<T>): string | null {
-  const fieldEntries = Object.entries(error.fieldErrors ?? {});
-  for (const [field, messages] of fieldEntries) {
-    if (field.startsWith('items.')) {
-      setError(field as Path<T>, { type: 'server', message: messages[0] ?? error.message });
-      return field;
-    }
-  }
-  if (error.code === 'ORGANIZATION_TYPE_NAME_EXISTS') {
-    return null;
-  }
-  return null;
 }

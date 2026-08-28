@@ -106,7 +106,7 @@ Columns:
 | Column | Input | Validation |
 | --- | --- | --- |
 | checkbox | row checkbox | Header checkbox checks all loaded rows; when all are checked, clicking removes all checks. |
-| `name` | text input | required after trimming, max 100, unique within current form rows |
+| `name` | text input, header shows required marker | required after trimming, max 100, unique within current form rows |
 | `description` | text input or textarea | optional, max 1000 |
 
 The `id` field is hidden form data, not editable.

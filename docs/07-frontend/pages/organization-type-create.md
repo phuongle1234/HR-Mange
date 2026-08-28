@@ -92,7 +92,7 @@ Columns:
 | Column | Input | Validation |
 | --- | --- | --- |
 | checkbox | row checkbox | Header checkbox checks all rows; when all rows are checked, clicking removes all checks. |
-| `name` | text input | required, max 100, unique within current form rows |
+| `name` | text input, header shows required marker | required, max 100, unique within current form rows |
 | `description` | text input or textarea | optional, max 1000 |
 
 Validation messages appear below the related input inside the same table cell.

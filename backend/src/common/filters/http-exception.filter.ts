@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 import { ErrorCode } from '../constants/error-code.constant';
 import { AppExceptionResponse } from '../exceptions/app.exception';
 import { RequestWithId } from '../middleware/request-id.middleware';
+import { ResponseHelper } from '../helpers/response.helper';
 
 interface ApiErrorResponseBody {
   statusCode: number;
@@ -49,7 +50,7 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
     const body = this.buildBody(exception, requestId);
     this.logIfUnexpected(exception, body, request);
 
-    response.status(body.statusCode).json(body);
+    response.status(body.statusCode).json(ResponseHelper.error(body));
   }
 
   private buildBody(exception: unknown, requestId?: string): ApiErrorResponseBody {

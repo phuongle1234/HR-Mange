@@ -7,7 +7,7 @@ import { authApiService, type LoginPayload } from '../services/auth.api';
 
 /**
  * Submits POST /api/auth/login. On success, persists the token
- * (Redux + localStorage) and marks the session authenticated — per
+ * (Redux + an expiring cookie) and marks the session authenticated — per
  * docs/07-frontend/providers/auth-provider.md ("no extra GET /api/auth/me
  * call is needed right after login since the login response already
  * includes the user").

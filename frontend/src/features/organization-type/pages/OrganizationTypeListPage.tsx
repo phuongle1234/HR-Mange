@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { ContextMenu } from '../../../shared/components/ContextMenu';
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/components/PageStates';
@@ -31,6 +32,10 @@ export function OrganizationTypeListPage() {
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deleteConfirmError, setDeleteConfirmError] = useState<string | null>(null);
+  // Row-level delete target. `null` means the open dialog is the bulk
+  // (context-menu) delete over `checkedIds`; a value means the row icon was
+  // clicked and only that row is deleted, leaving `checkedIds` untouched.
+  const [rowToDelete, setRowToDelete] = useState<OrganizationType | null>(null);
   const organizationTypesQuery = useOrganizationTypesQuery({ page, limit, sortBy, sortOrder, search: useDebounce(search, SEARCH_DEBOUNCE_MS) });
   const deleteMutation = useDeleteOrganizationTypesMutation();
 
@@ -60,20 +65,46 @@ export function OrganizationTypeListPage() {
     navigate('/organizations/types/update');
   }
 
+  function handleRequestBulkDelete() {
+    if (checkedIds.length === 0) {
+      return;
+    }
+    setRowToDelete(null);
+    setDeleteConfirmError(null);
+    setIsDeleteConfirmOpen(true);
+  }
+
+  function handleRequestRowDelete(item: OrganizationType) {
+    setRowToDelete(item);
+    setDeleteConfirmError(null);
+    setIsDeleteConfirmOpen(true);
+  }
+
   function handleCancelDelete() {
     if (deleteMutation.isPending) {
       return;
     }
     setIsDeleteConfirmOpen(false);
+    setRowToDelete(null);
     setDeleteConfirmError(null);
   }
 
   async function handleConfirmDelete() {
+    // Captured once so the request cannot change shape mid-flight if state
+    // updates while the mutation is pending.
+    const idsToDelete = rowToDelete ? [rowToDelete.id] : checkedIds;
+    if (idsToDelete.length === 0) {
+      return;
+    }
+
     try {
-      await deleteMutation.mutateAsync({ ids: checkedIds });
-      toast.success('Organization types deleted successfully.', { position: 'top-right' });
-      setCheckedIds([]);
+      await deleteMutation.mutateAsync({ ids: idsToDelete });
+      toast.success(rowToDelete ? 'Organization type deleted successfully.' : 'Organization types deleted successfully.', { position: 'top-right' });
+      // A row delete must still clear that row from the checked set, so a
+      // stale id can never be sent by a later bulk delete.
+      setCheckedIds((current) => current.filter((id) => !idsToDelete.includes(id)));
       setIsDeleteConfirmOpen(false);
+      setRowToDelete(null);
       setDeleteConfirmError(null);
     } catch (error) {
       setDeleteConfirmError((error as FrontendApiError).message);
@@ -83,7 +114,7 @@ export function OrganizationTypeListPage() {
   return (
     <div>
       <p className="mb-2 text-sm text-slate-500">Search, select, and manage organization type records.</p>
-      <ContextMenu items={[{ key: 'create', label: 'Create', onSelect: () => navigate('/organizations/types/create') }, { key: 'update', label: 'Update', disabled: checkedIds.length === 0, onSelect: handleUpdateSelected }, { key: 'delete', label: 'Delete', disabled: checkedIds.length === 0 || deleteMutation.isPending, danger: true, onSelect: () => setIsDeleteConfirmOpen(true) }]}>
+      <ContextMenu items={[{ key: 'create', label: 'Create', onSelect: () => navigate('/organizations/types/create') }, { key: 'update', label: 'Update', disabled: checkedIds.length === 0, onSelect: handleUpdateSelected }, { key: 'delete', label: 'Delete', disabled: checkedIds.length === 0 || deleteMutation.isPending, danger: true, onSelect: handleRequestBulkDelete }]}>
         {({ onContextMenu }) => (
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm" onContextMenu={onContextMenu}>
             <SearchAndFilterBar searchValue={search} onSearchChange={handleSearchChange} searchPlaceholder="Search by name or description" createLabel="Create Type" onCreate={() => navigate('/organizations/types/create')} limitValue={limit} onLimitChange={handleLimitChange} />
@@ -97,11 +128,12 @@ export function OrganizationTypeListPage() {
                     <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Description</th>
                     <th className="px-4 py-3"><SortableTableHeader field="createdAt" label="Created" activeField={sortBy} sortOrder={sortOrder} onSortChange={handleSortChange} /></th>
                     <th className="px-4 py-3"><SortableTableHeader field="updatedAt" label="Updated" activeField={sortBy} sortOrder={sortOrder} onSortChange={handleSortChange} /></th>
+                    <th className="px-4 py-3 text-xs font-black uppercase text-slate-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {organizationTypesQuery.isLoading && <tr><td colSpan={5}><LoadingState label="Loading organization types..." /></td></tr>}
-                  {!organizationTypesQuery.isLoading && organizationTypesQuery.isSuccess && items.length === 0 && <tr><td colSpan={5}><EmptyState label="No organization types found." /></td></tr>}
+                  {organizationTypesQuery.isLoading && <tr><td colSpan={6}><LoadingState label="Loading organization types..." /></td></tr>}
+                  {!organizationTypesQuery.isLoading && organizationTypesQuery.isSuccess && items.length === 0 && <tr><td colSpan={6}><EmptyState label="No organization types found." /></td></tr>}
                   {!organizationTypesQuery.isLoading && organizationTypesQuery.isSuccess && items.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50">
                       <td className="px-4 py-4"><input type="checkbox" aria-label={`Check ${item.name}`} checked={checkedIds.includes(item.id)} onChange={() => toggleRow(item)} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" /></td>
@@ -109,6 +141,7 @@ export function OrganizationTypeListPage() {
                       <td className="px-4 py-4 text-sm text-slate-700">{item.description ?? '-'}</td>
                       <td className="px-4 py-4 text-sm text-slate-700">{formatDate(item.createdAt)}</td>
                       <td className="px-4 py-4 text-sm text-slate-700">{formatDate(item.updatedAt)}</td>
+                      <td className="px-4 py-4"><button type="button" aria-label={`Delete ${item.name}`} title="Delete" disabled={deleteMutation.isPending} className="text-rose-600 transition hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => handleRequestRowDelete(item)}><DeleteIcon fontSize="small" /></button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -118,7 +151,7 @@ export function OrganizationTypeListPage() {
           </div>
         )}
       </ContextMenu>
-      <ConfirmDialog isOpen={isDeleteConfirmOpen} title="Delete Organization Types" message={`Delete ${checkedIds.length} selected organization type${checkedIds.length === 1 ? '' : 's'}?`} confirmLabel="Confirm delete" confirmVariant="danger" isConfirming={deleteMutation.isPending} errorMessage={deleteConfirmError} onConfirm={handleConfirmDelete} onCancel={handleCancelDelete} />
+      <ConfirmDialog isOpen={isDeleteConfirmOpen} title={rowToDelete ? 'Delete Organization Type' : 'Delete Organization Types'} message={rowToDelete ? `Delete organization type "${rowToDelete.name}"?` : `Delete ${checkedIds.length} selected organization type${checkedIds.length === 1 ? '' : 's'}?`} confirmLabel="Confirm delete" confirmVariant="danger" isConfirming={deleteMutation.isPending} errorMessage={deleteConfirmError} onConfirm={handleConfirmDelete} onCancel={handleCancelDelete} />
     </div>
   );
 }

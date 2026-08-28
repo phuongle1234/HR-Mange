@@ -42,7 +42,7 @@ DTO name: `BulkCreateEmployeesDto`
 | `items[].status` | no | one of `ACTIVE`, `INACTIVE`, `ON_LEAVE`, `TERMINATED`; default `ACTIVE` |
 | `items[].organizationId` | no | integer, must reference an existing `organizations.id` when present |
 
-Reuses the same `@IsEmployeeCodeUnique`/`@IsEmployeeEmailUnique` validator pattern as `API-EMPLOYEE-CREATE`, extended to also check uniqueness against sibling rows within the same request body (the same "duplicate within request" pattern `API-ORGANIZATION-TYPE-CREATE-MANY` already uses for `name`).
+Uniqueness is **not** checked with the per-field `@IsEmployeeCodeUnique`/`@IsEmployeeEmailUnique` decorators used by the single-record `API-EMPLOYEE-CREATE`. Those run one database query per field per row (N+1: 200 queries for a 100-row request) and cannot see sibling rows, so they cannot detect duplicates inside the same request. Instead, array-level constraints on `items` (`employee-bulk-dto.validator.ts`) check duplicates-within-request and database uniqueness in **one batched query**, and report per-row paths through the shared collector — see "Bulk Endpoint Field Error Paths" in `API-ERROR-RESPONSE`.
 
 ## Business Logic
 1. Validate body.
@@ -132,7 +132,7 @@ Reuses the same `@IsEmployeeCodeUnique`/`@IsEmployeeEmailUnique` validator patte
 - Mutation key: `['employees', 'bulk-create']`.
 - On success, invalidate `['employees']`.
 - Create page redirects to `/employees`.
-- Field errors for `items[n].employeeCode`/`items[n].email`/`items[n].organizationId` must be mapped to the corresponding table row/cell input.
+- Field errors arrive as granular dot paths — `items.0.employeeCode`, `items.1.email`, `items.2.organizationId` — one entry per offending row+field, and must be mapped to the corresponding table row/cell input. See `API-ERROR-RESPONSE` → "Bulk Endpoint Field Error Paths". Note the wire format is `items.0.email` (dot + index), not `items[0].email`.
 
 ## Ambiguities
 None blocking. `organizationId` validation failure is specified as `400` rather than `404` because, unlike a URL path id, this is caller-supplied request body data being rejected — consistent with how `API-CONVENTIONS` treats other DTO-shape rejections.

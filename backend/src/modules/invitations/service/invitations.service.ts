@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
+import { Invitation } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AppConfig } from '../../../config/configuration';
-import { AuditEntityType } from '../../../common/constants/audit-action.constant';
-import { ENTITY_CREATED_EVENT, EntityCrudEvent } from '../../../common/events/entity-crud.event';
+import { BaseService } from '../../../common/services/base.service';
+import { PaginatedResult } from '../../../common/interfaces/base.interface';
+import { InvitationNotFoundException } from '../../../common/exceptions/app.exception';
 import { generateInvitationToken, hashInvitationToken } from '../utils/invitation-token.util';
 import { INVITATION_CREATED_EVENT, InvitationCreatedEvent } from '../events/invitation-created.event';
+import { GetInvitationsQueryDto } from '../dto/get-invitations-query.dto';
 import {
   CreateInvitationsResult,
   IInvitationsService,
@@ -26,24 +29,62 @@ interface PendingInvitationRow {
 }
 
 /**
- * Deliberately does not extend BaseService - this needs a per-row token
- * side effect plus a partitioned created/skipped response shape that
- * BaseService's uniform "return the created rows" contract does not fit
- * (see API-INVITATIONS-CREATE's Database Interaction section).
+ * Follows the mandatory backend flow (AGENTS.md Backend Rules):
+ * Controller -> IInvitationsService -> InvitationsService -> BaseService ->
+ * Prisma -> PostgreSQL. All row writes go through inherited BaseService
+ * methods via `this.createMany(...)` / `this.update(...)` - this service
+ * never touches `this.prisma.invitation` directly.
+ *
+ * Audit eventing is opted out (`entityType: null` in the super call): the
+ * Invitation lifecycle is tracked by this module's own
+ * `invitation.created` domain event plus the row's own status/sentAt/
+ * sendAttempts columns, and an Invitation row is created together with a
+ * one-time token whose URL must never reach the shared audit log. See
+ * BaseService's class doc for what opting out changes (only whether
+ * entity.created/updated/deleted is emitted - nothing else).
+ *
+ * `prisma` is still injected, but only for the cross-entity Employee read
+ * that decides which employees are eligible (BaseService is scoped to one
+ * delegate - the Invitation delegate - by design and cannot read Employee).
  */
 @Injectable()
-export class InvitationsService implements IInvitationsService {
+export class InvitationsService
+  extends BaseService<PrismaService['invitation'], GetInvitationsQueryDto>
+  implements IInvitationsService
+{
   private readonly frontendUrl: string;
 
+  /**
+   * `invitationEvents` is this module's own domain-event emitter reference,
+   * named distinctly from BaseService's private `eventEmitter` (a private
+   * member of the same name in both classes is a TS conflict). BaseService's
+   * copy is unused here anyway - audit eventing is opted out via
+   * `entityType: null`.
+   */
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly invitationEvents: EventEmitter2,
     configService: ConfigService<AppConfig>,
   ) {
+    super(prisma.invitation, invitationEvents, null, (id) => new InvitationNotFoundException(id));
     this.frontendUrl = configService.get('app.frontendUrl', { infer: true });
   }
 
-  async createMany(employeeIds: string[], actorUserId: string): Promise<CreateInvitationsResult> {
+  async findMany(query?: GetInvitationsQueryDto): Promise<PaginatedResult<Invitation>> {
+    const where = {
+      ...(query?.employeeId ? { employeeId: query.employeeId } : {}),
+      ...(query?.status ? { status: query.status } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.entity.findMany({ where, orderBy: { createdAt: 'desc' } }),
+      this.entity.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  async createInvitations(employeeIds: string[], actorUserId: string): Promise<CreateInvitationsResult> {
     const employees = await this.prisma.employee.findMany({ where: { id: { in: employeeIds } } });
     const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
 
@@ -76,52 +117,48 @@ export class InvitationsService implements IInvitationsService {
       });
     }
 
+    if (pending.length === 0) return { created: [], skipped };
+
+    const rows = await this.createMany(
+      pending.map((row) => ({
+        employeeId: row.employeeId,
+        email: row.email,
+        tokenHash: row.tokenHash,
+        expiresAt: row.expiresAt,
+      })),
+      actorUserId,
+    );
+
     const created: InvitationCreatedResult[] = [];
-    if (pending.length > 0) {
-      const rows = await this.prisma.$transaction(
-        pending.map((row) =>
-          this.prisma.invitation.create({
-            data: {
-              employeeId: row.employeeId,
-              email: row.email,
-              tokenHash: row.tokenHash,
-              expiresAt: row.expiresAt,
-            },
-          }),
+    rows.forEach((invitation, index) => {
+      created.push({ employeeId: invitation.employeeId, invitationId: invitation.id });
+
+      const pendingRow = pending[index];
+      this.invitationEvents.emit(
+        INVITATION_CREATED_EVENT,
+        new InvitationCreatedEvent(
+          invitation.id,
+          invitation.employeeId,
+          invitation.email,
+          pendingRow.employeeName,
+          `${this.frontendUrl}/invitation/accept?token=${pendingRow.rawToken}`,
+          invitation.expiresAt,
         ),
       );
-
-      rows.forEach((invitation, index) => {
-        created.push({ employeeId: invitation.employeeId, invitationId: invitation.id });
-
-        // Audit trail for the invitation row itself, distinct from the
-        // mail-trigger event below - never carries the raw token/URL.
-        this.eventEmitter.emit(
-          ENTITY_CREATED_EVENT,
-          new EntityCrudEvent(
-            AuditEntityType.INVITATION,
-            invitation.id,
-            { employeeId: invitation.employeeId, email: invitation.email, expiresAt: invitation.expiresAt },
-            actorUserId,
-            new Date(),
-          ),
-        );
-
-        const pendingRow = pending[index];
-        this.eventEmitter.emit(
-          INVITATION_CREATED_EVENT,
-          new InvitationCreatedEvent(
-            invitation.id,
-            invitation.employeeId,
-            invitation.email,
-            pendingRow.employeeName,
-            `${this.frontendUrl}/invitation/accept?token=${pendingRow.rawToken}`,
-            invitation.expiresAt,
-          ),
-        );
-      });
-    }
+    });
 
     return { created, skipped };
+  }
+
+  async markSent(invitationId: string): Promise<void> {
+    await this.update(invitationId, { status: 'SENT', sentAt: new Date(), sendAttempts: { increment: 1 } });
+  }
+
+  async markSendFailed(invitationId: string, errorMessage: string): Promise<void> {
+    await this.update(invitationId, {
+      status: 'SEND_FAILED',
+      sendAttempts: { increment: 1 },
+      lastSendError: errorMessage,
+    });
   }
 }

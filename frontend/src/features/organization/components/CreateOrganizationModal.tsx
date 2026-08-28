@@ -19,6 +19,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { RequiredHeader } from '../../../shared/components/RequiredHeader';
+import { useApiFieldErrors } from '../../../shared/hooks/useApiFieldErrors';
 import {
   createOrganizationFormSchema,
   DEFAULT_CREATE_ORGANIZATION_ROW,
@@ -31,18 +33,24 @@ interface CreateOrganizationModalProps {
   /** Non-null when opened via a node's `[+]` (task §11/§12) - shown readonly. */
   parent: OrganizationStage | null;
   organizationTypeOptions: Array<{ value: string; label: string }>;
+  apiError?: unknown;
   isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (rows: CreateOrganizationFormValues['rows']) => void;
 }
 
 /** Task §12/§13/§14/§15/§16 - multi-row Create Organization modal. */
-export function CreateOrganizationModal({ isOpen, parent, organizationTypeOptions, isSubmitting = false, onCancel, onSubmit }: CreateOrganizationModalProps) {
+function mapCreateOrganizationFieldPath(fieldPath: string): string {
+  return fieldPath.replace(/^items\.(\d+)\./, 'rows.$1.');
+}
+
+export function CreateOrganizationModal({ isOpen, parent, organizationTypeOptions, apiError, isSubmitting = false, onCancel, onSubmit }: CreateOrganizationModalProps) {
   const {
     control,
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<CreateOrganizationFormValues>({
     resolver: zodResolver(createOrganizationFormSchema),
@@ -50,6 +58,7 @@ export function CreateOrganizationModal({ isOpen, parent, organizationTypeOption
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'rows' });
+  useApiFieldErrors(apiError, setError, { mapFieldPath: mapCreateOrganizationFieldPath });
 
   useEffect(() => {
     if (isOpen) {
@@ -78,8 +87,8 @@ export function CreateOrganizationModal({ isOpen, parent, organizationTypeOption
           <TableHead>
             <TableRow>
               <TableCell>#</TableCell>
-              <TableCell>Code</TableCell>
-              <TableCell>Name</TableCell>
+              <TableCell><RequiredHeader label="Code" /></TableCell>
+              <TableCell><RequiredHeader label="Name" /></TableCell>
               <TableCell>Organization Type</TableCell>
               <TableCell align="right">Action</TableCell>
             </TableRow>
@@ -108,6 +117,7 @@ export function CreateOrganizationModal({ isOpen, parent, organizationTypeOption
                 </TableCell>
                 <TableCell>
                   <Controller control={control} name={`rows.${index}.organizationTypeId` as const} render={({ field: selectField }) => <ReactSelect classNamePrefix="react-select" isClearable options={organizationTypeOptions} value={organizationTypeOptions.find((option) => option.value === selectField.value) ?? null} onChange={(option) => selectField.onChange(option?.value ?? null)} />} />
+                  {errors.rows?.[index]?.organizationTypeId?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{errors.rows[index]?.organizationTypeId?.message}</p>}
                 </TableCell>
                 <TableCell align="right">
                   <IconButton

@@ -12,8 +12,8 @@ export class InvitationsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createMany(@Body() dto: CreateInvitationsDto, @CurrentUser() user: CurrentUserPayload) {
-    const result = await this.invitationsService.createMany(dto.employeeIds, user.id);
+  async createInvitations(@Body() dto: CreateInvitationsDto, @CurrentUser() user: CurrentUserPayload) {
+    const result = await this.invitationsService.createInvitations(dto.employeeIds, user.id);
     return ResponseHelper.success({ data: result, message: 'Invitations registered successfully.' });
   }
 }

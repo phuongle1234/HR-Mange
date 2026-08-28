@@ -53,6 +53,16 @@ function isRecordNotFoundError(error: unknown): boolean {
  * Prisma's own not-found error (`P2025`) from the write itself, rather than
  * querying first - there is no snapshot query anywhere in this class purely
  * to serve the audit event.
+ *
+ * Audit eventing is opt-out per entity: pass `entityType: null` to the
+ * constructor for an entity that must not publish `entity.created`/
+ * `entity.updated`/`entity.deleted` at all (e.g. Invitation, whose own
+ * module owns its domain events and whose rows carry a one-time secret that
+ * must never reach the audit log). Opting out changes only whether the
+ * shared event is emitted - every CRUD method still behaves identically, so
+ * such an entity still inherits the full flow required by AGENTS.md's
+ * `Controller -> Interface -> Service -> BaseService -> Prisma -> PostgreSQL`
+ * architecture instead of talking to Prisma directly.
  */
 export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = unknown>
   implements IBaseService<EntityOf<TDelegate>, CreateDataOf<TDelegate>, UpdateDataOf<TDelegate>, TQuery>
@@ -60,7 +70,7 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
   protected constructor(
     protected readonly entity: TDelegate,
     private readonly eventEmitter: EventEmitter2,
-    private readonly entityType: AuditEntityType,
+    private readonly entityType: AuditEntityType | null,
     private readonly notFoundException: (id: string) => Error,
   ) {}
 
@@ -153,7 +163,14 @@ export abstract class BaseService<TDelegate extends CrudDelegateShape, TQuery = 
     return String(unsafeCoerce<{ id: unknown }>(entity).id);
   }
 
+  /**
+   * No-op when `entityType` is null - that entity opted out of shared audit
+   * eventing entirely (see the class doc). This is the only behavioral
+   * difference between an audited and a non-audited entity.
+   */
   private emit(eventName: string, entityId: string, payload: unknown, actorUserId?: string): void {
+    if (this.entityType === null) return;
+
     this.eventEmitter.emit(
       eventName,
       new EntityCrudEvent(this.entityType, entityId, payload, actorUserId, new Date()),

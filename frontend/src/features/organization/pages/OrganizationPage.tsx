@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { toast } from 'react-toastify';
+import { ConfirmDialog, ReviewRow } from '../../../shared/components/ConfirmDialog';
 import { useOrganizationFlow } from '../hooks/useOrganizationFlow';
 import { OrganizationToolbar } from '../components/OrganizationToolbar';
 import { OrganizationFlow } from '../components/OrganizationFlow';
@@ -20,6 +21,7 @@ import type { FrontendApiError } from '../../../shared/api/api-error';
 import { ErrorState, LoadingState } from '../../../shared/components/PageStates';
 
 type ModalState = { type: 'create'; parentUiId: number | null } | { type: 'edit'; uiId: number } | null;
+type PendingDelete = { ids: number[]; name: string };
 
 const ORGANIZATION_TYPE_QUERY = { page: 1, limit: 100, search: '', sortBy: 'name' as const, sortOrder: 'asc' as const };
 
@@ -43,6 +45,9 @@ function getErrorMessage(error: unknown): string {
 
 export function OrganizationPage() {
   const [modalState, setModalState] = useState<ModalState>(null);
+  const [createApiError, setCreateApiError] = useState<unknown>(null);
+  const [editApiError, setEditApiError] = useState<unknown>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const organizationsQuery = useOrganizationsQuery();
   const organizationTypesQuery = useOrganizationTypesQuery(ORGANIZATION_TYPE_QUERY);
   const createMutation = useCreateOrganizationsMutation();
@@ -55,19 +60,25 @@ export function OrganizationPage() {
 
   const getOrganization = (uiId: number) => organizations.find((organization) => organization.uiId === uiId);
 
-  async function deleteOrganizationTree(uiId: number) {
-    const targetIds = [uiId, ...findDescendantUiIds(uiId, organizations)];
-    await deleteMutation.mutateAsync({ ids: targetIds });
+  async function deleteOrganizationTree(ids: number[]) {
+    await deleteMutation.mutateAsync({ ids });
     toast.success('Organizations deleted successfully.', { position: 'top-right' });
   }
 
   const actions: OrganizationActions = useMemo(
     () => ({
-      onAddChild: (uiId) => setModalState({ type: 'create', parentUiId: uiId }),
-      onDelete: (uiId) => {
-        deleteOrganizationTree(uiId).catch((error) => toast.error(getErrorMessage(error), { position: 'top-right' }));
+      onAddChild: (uiId) => {
+        setCreateApiError(null);
+        setModalState({ type: 'create', parentUiId: uiId });
       },
-      onOpenEdit: (uiId) => setModalState({ type: 'edit', uiId }),
+      onDelete: (uiId) => {
+        const organization = getOrganization(uiId);
+        setPendingDelete({ ids: [uiId, ...findDescendantUiIds(uiId, organizations)], name: organization?.name ?? 'this organization' });
+      },
+      onOpenEdit: (uiId) => {
+        setEditApiError(null);
+        setModalState({ type: 'edit', uiId });
+      },
     }),
     [organizations],
   );
@@ -78,21 +89,51 @@ export function OrganizationPage() {
   const isMutating = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   function closeModal() {
-    if (!isMutating) setModalState(null);
+    if (!isMutating) {
+      setCreateApiError(null);
+      setEditApiError(null);
+      setModalState(null);
+    }
   }
 
   async function createOrganizations(rows: CreateOrganizationFormValues['rows']) {
     const parentId = modalState?.type === 'create' ? modalState.parentUiId : null;
-    await createMutation.mutateAsync({ items: rows.map((row) => ({ code: row.code, name: row.name, organizationTypeId: row.organizationTypeId ?? null, description: row.description || null, parentId })) });
-    toast.success('Organizations created successfully.', { position: 'top-right' });
-    setModalState(null);
+    try {
+      setCreateApiError(null);
+      await createMutation.mutateAsync({ items: rows.map((row) => ({ code: row.code, name: row.name, organizationTypeId: row.organizationTypeId ?? null, description: row.description || null, parentId })) });
+      toast.success('Organizations created successfully.', { position: 'top-right' });
+      setModalState(null);
+    } catch (error) {
+      setCreateApiError(error);
+    }
   }
 
   async function updateOrganization(values: EditOrganizationFormValues) {
     if (!editingOrganization?.id) return;
-    await updateMutation.mutateAsync({ items: [{ id: editingOrganization.id, code: values.code, name: values.name, organizationTypeId: values.organizationTypeId ?? null, description: values.description || null, isActive: values.isActive }] });
-    toast.success('Organization updated successfully.', { position: 'top-right' });
-    setModalState(null);
+    try {
+      setEditApiError(null);
+      await updateMutation.mutateAsync({ items: [{ id: editingOrganization.id, code: values.code, name: values.name, organizationTypeId: values.organizationTypeId ?? null, description: values.description || null, isActive: values.isActive }] });
+      toast.success('Organization updated successfully.', { position: 'top-right' });
+      setModalState(null);
+    } catch (error) {
+      setEditApiError(error);
+    }
+  }
+
+  function closeDeleteDialog() {
+    if (!deleteMutation.isPending) {
+      setPendingDelete(null);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return;
+    try {
+      await deleteOrganizationTree(pendingDelete.ids);
+      setPendingDelete(null);
+    } catch {
+      setPendingDelete(null);
+    }
   }
 
   if (organizationsQuery.isLoading) return <LoadingState label="Loading organizations..." />;
@@ -105,14 +146,22 @@ export function OrganizationPage() {
       {organizations.length === 0 ? (
         <div className="flex h-[calc(100vh-260px)] min-h-[420px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50">
           <p className="text-sm font-semibold text-slate-500">No organizations yet</p>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setModalState({ type: 'create', parentUiId: null })}>Add Organization</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setCreateApiError(null); setModalState({ type: 'create', parentUiId: null }); }}>Add Organization</Button>
         </div>
       ) : (
         <OrganizationFlow nodes={nodes} edges={edges} actions={actions} />
       )}
 
-      <CreateOrganizationModal isOpen={modalState?.type === 'create'} parent={createParent} organizationTypeOptions={organizationTypeOptions} isSubmitting={createMutation.isPending} onCancel={closeModal} onSubmit={(rows) => createOrganizations(rows).catch((error) => toast.error(getErrorMessage(error), { position: 'top-right' }))} />
-      <EditOrganizationModal organization={editingOrganization} parent={editingParent} organizationTypeOptions={organizationTypeOptions} isSubmitting={updateMutation.isPending} onCancel={closeModal} onSubmit={(values) => updateOrganization(values).catch((error) => toast.error(getErrorMessage(error), { position: 'top-right' }))} />
+      <CreateOrganizationModal isOpen={modalState?.type === 'create'} parent={createParent} organizationTypeOptions={organizationTypeOptions} apiError={createApiError} isSubmitting={createMutation.isPending} onCancel={closeModal} onSubmit={createOrganizations} />
+      <EditOrganizationModal organization={editingOrganization} parent={editingParent} organizationTypeOptions={organizationTypeOptions} apiError={editApiError} isSubmitting={updateMutation.isPending} onCancel={closeModal} onSubmit={updateOrganization} />
+      <ConfirmDialog isOpen={Boolean(pendingDelete)} title="Delete Organization" message="This will delete the selected organization and every child organization below it." confirmLabel="Confirm delete" confirmVariant="danger" isConfirming={deleteMutation.isPending} onConfirm={handleConfirmDelete} onCancel={closeDeleteDialog}>
+        {pendingDelete && (
+          <>
+            <ReviewRow label="Organization" value={pendingDelete.name} />
+            <ReviewRow label="Rows" value={pendingDelete.ids.length} />
+          </>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

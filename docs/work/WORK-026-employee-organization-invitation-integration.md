@@ -13,6 +13,8 @@ depends_on:
 ## Work Status
 `DRAFT` - blocked until backend (`WORK-024`) and frontend (`WORK-025`) implementation work items are complete.
 
+**Parked 2026-08-28** at the user's decision: `WORK-024`, `WORK-025`, and this item are deliberately pending and will be resumed later. Work moved on to the Workflow Module (`WORK-027`-`WORK-031`). `WORK-024` is partially implemented in the worktree — Employee bulk endpoints, Organization FK, and the Invitations module exist, but the accept-invitation endpoint, the Mailpit container, and the `.http` files do not. Do not assume any part of this group is finished.
+
 ## Summary
 Verify the frontend against the real backend API end-to-end, run the daily task's own Validation checklist (`docs/09-workflow/daily-tasks/2026-08-26.md` §38), remove or disable any temporary mocks/stubs, and synchronize specs if implementation reveals a contract mismatch.
 

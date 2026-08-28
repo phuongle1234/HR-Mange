@@ -94,13 +94,13 @@ Columns:
 | Column | Input | Validation |
 | --- | --- | --- |
 | checkbox | row checkbox | Header checkbox checks all rows; when all rows are checked, clicking removes all checks. |
-| `employeeCode` | text input | required, max 50, unique within current form rows |
-| `firstName` | text input | required, max 100 |
-| `lastName` | text input | required, max 100 |
-| `email` | text input | required, valid email, max 255, unique within current form rows |
-| `phone` | text input | optional, max 30 |
+| `employeeCode` | text input, header shows required marker | required, max 50, unique within current form rows |
+| `firstName` | text input, header shows required marker | required, max 100 |
+| `lastName` | text input, header shows required marker | required, max 100 |
+| `email` | text input, header shows required marker | required, valid email, max 255, unique within current form rows |
+| `phone` | number input | optional, max 30 |
 | `position` | text input | optional, max 100 |
-| `status` | select | one of `ACTIVE`/`INACTIVE`/`ON_LEAVE`/`TERMINATED`, default `ACTIVE` |
+| `status` | select, header shows required marker | one of `ACTIVE`/`INACTIVE`/`ON_LEAVE`/`TERMINATED`, default `ACTIVE` |
 | `organization` | `react-select`, options from `['organizations']`, `isClearable` | optional; stores `organizationId` (the option's `value`), not the display name (task §4, explicit: "Không lưu Organization Name thay cho FK") |
 
 Validation messages appear below the related input inside the same table cell.

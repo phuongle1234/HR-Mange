@@ -7,6 +7,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { recordBulkFieldError } from '../../../common/validators/bulk-field-error-collector';
 
 interface EmployeeBulkItem {
   id?: string;
@@ -35,22 +36,76 @@ function asItems(value: unknown): EmployeeBulkItem[] {
   return Array.isArray(value) ? (value as EmployeeBulkItem[]) : [];
 }
 
-function duplicateValue(items: EmployeeBulkItem[], key: keyof EmployeeBulkItem): unknown {
-  const seen = new Set<unknown>();
-  for (const item of items) {
+/**
+ * Maps each present value (lower-cased, so matching is case-insensitive like
+ * the database lookups) to the index of the item that owns it. When two items
+ * share a value the later index wins, which is harmless here: the duplicate
+ * itself is already reported by the HasUniqueEmployeeBulk* constraints.
+ */
+function indexByLoweredValue(items: EmployeeBulkItem[], key: 'employeeCode' | 'email'): Map<string, number> {
+  const owners = new Map<string, number>();
+
+  items.forEach((item, index) => {
     const value = item[key];
-    if (value === undefined || value === null || value === '') continue;
+    if (typeof value !== 'string' || value.length === 0) return;
+    owners.set(value.toLowerCase(), index);
+  });
+
+  return owners;
+}
+
+/** The distinct non-empty values submitted for one field, casing preserved. */
+function submittedValues(items: EmployeeBulkItem[], key: 'employeeCode' | 'email'): string[] {
+  const values = items
+    .map((item) => item[key])
+    .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+  return [...new Set(values)];
+}
+
+/**
+ * Returns the indexes of every item after the first that repeats a value, so
+ * each offending row can be reported at its own field path. The first
+ * occurrence is treated as valid - only the repeats are flagged.
+ */
+function duplicateIndexes(items: EmployeeBulkItem[], key: keyof EmployeeBulkItem): number[] {
+  const seen = new Set<unknown>();
+  const duplicates: number[] = [];
+
+  items.forEach((item, index) => {
+    const value = item[key];
+    if (value === undefined || value === null || value === '') return;
+
     const comparable = typeof value === 'string' ? value.toLowerCase() : value;
-    if (seen.has(comparable)) return value;
+    if (seen.has(comparable)) {
+      duplicates.push(index);
+      return;
+    }
     seen.add(comparable);
-  }
-  return undefined;
+  });
+
+  return duplicates;
+}
+
+/**
+ * Shared body for the "no duplicates inside one request" constraints: report
+ * each repeated row at `items.<index>.<field>` and fail, or pass when clean.
+ */
+function validateNoDuplicates(
+  value: unknown,
+  args: ValidationArguments,
+  key: 'id' | 'employeeCode' | 'email',
+  message: string,
+): boolean {
+  const duplicates = duplicateIndexes(asItems(value), key);
+  duplicates.forEach((index) => recordBulkFieldError(args, `items.${index}.${key}`, message));
+  return duplicates.length === 0;
 }
 
 @ValidatorConstraint({ name: 'HasUniqueEmployeeBulkIds', async: false })
 export class HasUniqueEmployeeBulkIdsConstraint implements ValidatorConstraintInterface {
-  validate(value: unknown): boolean {
-    return duplicateValue(asItems(value), 'id') === undefined;
+  validate(value: unknown, args: ValidationArguments): boolean {
+    return validateNoDuplicates(value, args, 'id', 'Duplicate employee id in request.');
   }
 
   defaultMessage(): string {
@@ -72,8 +127,8 @@ export function HasUniqueEmployeeBulkIds(validationOptions?: ValidationOptions) 
 
 @ValidatorConstraint({ name: 'HasUniqueEmployeeBulkCodes', async: false })
 export class HasUniqueEmployeeBulkCodesConstraint implements ValidatorConstraintInterface {
-  validate(value: unknown): boolean {
-    return duplicateValue(asItems(value), 'employeeCode') === undefined;
+  validate(value: unknown, args: ValidationArguments): boolean {
+    return validateNoDuplicates(value, args, 'employeeCode', 'Duplicate employee code in request.');
   }
 
   defaultMessage(): string {
@@ -95,8 +150,8 @@ export function HasUniqueEmployeeBulkCodes(validationOptions?: ValidationOptions
 
 @ValidatorConstraint({ name: 'HasUniqueEmployeeBulkEmails', async: false })
 export class HasUniqueEmployeeBulkEmailsConstraint implements ValidatorConstraintInterface {
-  validate(value: unknown): boolean {
-    return duplicateValue(asItems(value), 'email') === undefined;
+  validate(value: unknown, args: ValidationArguments): boolean {
+    return validateNoDuplicates(value, args, 'email', 'Duplicate email in request.');
   }
 
   defaultMessage(): string {
@@ -144,28 +199,65 @@ export function HasEmployeeBulkMutableField(validationOptions?: ValidationOption
 export class EmployeeBulkFieldsAreUniqueInDatabaseConstraint implements ValidatorConstraintInterface {
   constructor(private readonly prisma: PrismaService) {}
 
-  async validate(value: unknown): Promise<boolean> {
+  /**
+   * One batched query for the whole array (not one per item), then per-row
+   * reporting through `recordBulkFieldError` so the client receives
+   * `items.<index>.employeeCode` / `items.<index>.email` instead of a single
+   * blanket message on `items`.
+   *
+   * `employeeCode` and `email` are matched independently. Matching them with
+   * a single `find(... code === ... || email === ...)` would attribute a
+   * conflict to the first row matching *either* field, which blames the
+   * wrong row whenever one row collides on code and a different row collides
+   * on email.
+   */
+  async validate(value: unknown, args: ValidationArguments): Promise<boolean> {
     const items = asItems(value);
-    const codes = items.map((item) => item.employeeCode).filter((code): code is string => !!code);
-    const emails = items.map((item) => item.email).filter((email): email is string => !!email);
-    if (codes.length === 0 && emails.length === 0) return true;
+    const codeOwners = indexByLoweredValue(items, 'employeeCode');
+    const emailOwners = indexByLoweredValue(items, 'email');
+    if (codeOwners.size === 0 && emailOwners.size === 0) return true;
 
+    // Query with the submitted values as-is: PostgreSQL `IN` is
+    // case-sensitive, so sending lower-cased values would miss rows stored
+    // with different casing. The lower-cased maps are only used to look the
+    // owning row index back up afterwards.
     const found = await this.prisma.employee.findMany({
       where: {
         OR: [
-          ...(codes.length > 0 ? [{ employeeCode: { in: codes } }] : []),
-          ...(emails.length > 0 ? [{ email: { in: emails } }] : []),
+          ...(codeOwners.size > 0 ? [{ employeeCode: { in: submittedValues(items, 'employeeCode') } }] : []),
+          ...(emailOwners.size > 0 ? [{ email: { in: submittedValues(items, 'email') } }] : []),
         ],
       },
       select: { id: true, employeeCode: true, email: true },
     });
 
-    return found.every((row) => {
-      const matchingItem = items.find((item) => item.employeeCode === row.employeeCode || item.email === row.email);
-      return !!matchingItem?.id && matchingItem.id === row.id;
-    });
+    let isValid = true;
+
+    for (const row of found) {
+      // A row owned by the item being updated is not a conflict with itself.
+      const conflictsWith = (index: number | undefined): boolean =>
+        index !== undefined && items[index]?.id !== row.id;
+
+      const codeIndex = codeOwners.get(row.employeeCode.toLowerCase());
+      if (conflictsWith(codeIndex)) {
+        recordBulkFieldError(args, `items.${codeIndex}.employeeCode`, 'Employee code is already in use.');
+        isValid = false;
+      }
+
+      const emailIndex = emailOwners.get(row.email.toLowerCase());
+      if (conflictsWith(emailIndex)) {
+        recordBulkFieldError(args, `items.${emailIndex}.email`, 'Email is already in use.');
+        isValid = false;
+      }
+    }
+
+    return isValid;
   }
 
+  /**
+   * Fallback only. When this constraint fails it has already recorded
+   * granular per-row paths, which supersede this array-level message.
+   */
   defaultMessage(): string {
     return 'employeeCode or email is already in use.';
   }
@@ -188,20 +280,29 @@ export function EmployeeBulkFieldsAreUniqueInDatabase(validationOptions?: Valida
 export class EmployeeBulkOrganizationsExistConstraint implements ValidatorConstraintInterface {
   constructor(private readonly prisma: PrismaService) {}
 
-  async validate(value: unknown): Promise<boolean> {
+  async validate(value: unknown, args: ValidationArguments): Promise<boolean> {
+    const items = asItems(value);
     const ids = [
-      ...new Set(
-        asItems(value)
-          .map((item) => item.organizationId)
-          .filter((id): id is number => typeof id === 'number'),
-      ),
+      ...new Set(items.map((item) => item.organizationId).filter((id): id is number => typeof id === 'number')),
     ];
     if (ids.length === 0) return true;
 
     const found = await this.prisma.organization.findMany({ where: { id: { in: ids } }, select: { id: true } });
-    return found.length === ids.length;
+    if (found.length === ids.length) return true;
+
+    // Report each offending row rather than one blanket message on `items`.
+    const existingIds = new Set(found.map((organization) => organization.id));
+    items.forEach((item, index) => {
+      if (typeof item.organizationId !== 'number' || existingIds.has(item.organizationId)) return;
+      recordBulkFieldError(args, `items.${index}.organizationId`, 'Organization does not exist.');
+    });
+
+    return false;
   }
 
+  /**
+   * Fallback only - granular per-row paths recorded above supersede this.
+   */
   defaultMessage(): string {
     return 'organizationId must reference an existing organization.';
   }

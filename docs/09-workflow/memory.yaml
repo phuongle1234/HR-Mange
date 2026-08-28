@@ -1,0 +1,212 @@
+id: WORKFLOW-MEMORY
+type: workflow
+module: global
+status: draft
+purpose: >
+  Lightweight long-term memory for future AI agents. This file stores durable,
+  verified project knowledge only. It is not raw history and not a session log.
+
+source_authority:
+  - Current user instruction wins over older notes.
+  - Read AGENTS.md first.
+  - Then read docs/09-workflow/ai-agent-onboarding.md.
+  - Then read this file.
+  - Session handoff lives in docs/09-workflow/session-context.md.
+  - Chronological history lives in daily JSONL files under docs/09-workflow/history/.
+
+project_shape:
+  name: EmployeeOS / Employee Management System
+  workflow: specification-first
+  backend:
+    stack:
+      - NestJS
+      - Prisma
+      - PostgreSQL
+  frontend:
+    stack:
+      - React
+      - React Router
+      - Redux Toolkit
+      - TanStack Query
+      - Axios
+      - React Hook Form
+      - Zod
+      - Tailwind
+
+planning_rules:
+  - Showing or approving a plan does not authorize coding.
+  - Coding starts only after a separate explicit user follow-up such as "lam di", "tien hanh", or "implement this".
+  - Plan files belong in docs/09-workflow/plans/.
+
+specification_rules:
+  backend_api_read_order:
+    - docs/00-project
+    - docs/01-business
+    - docs/02-solution
+    - docs/03-technology
+    - docs/04-database
+    - docs/06-api
+  frontend_read_order:
+    - docs/00-project
+    - docs/01-business
+    - docs/02-solution
+    - docs/03-technology
+    - docs/05-ui-ux
+    - docs/06-api
+    - docs/07-frontend
+  rules:
+    - Do not invent business rules, APIs, fields, permissions, or architecture decisions not defined by spec.
+    - When implementation changes behavior, update the related spec in the same task.
+
+backend_rules:
+  architecture_flow: Controller -> Interface / Abstraction -> Service -> BaseService -> Prisma -> PostgreSQL
+  rules:
+    - The architecture flow is mandatory with no exceptions for entity modules.
+    - Every entity service extends BaseService and every entity service interface extends IBaseService.
+    - Entity-specific operations use differently named methods and persist through inherited BaseService methods.
+    - A service may inject PrismaService only to read a different entity its own delegate cannot reach.
+    - Row writes for the service's own entity always go through inherited BaseService methods.
+    - Event listeners and collaborators that mutate an entity call that entity's service interface, not PrismaService.
+    - Controllers inject interface tokens such as @Inject('IEmployeeService'), not concrete service classes.
+    - Controllers do not validate request data; validation belongs in DTOs, pipes, class-validator/class-transformer decorators, or reusable DTO validators.
+    - BaseService.updateMany callers map DTO rows to Array<{ id, data }>.
+    - Optional update fields are included in data only when present; never use fake defaults like name: item?.name || ''.
+    - BaseService does not add, drop, or transform persisted data; callers include createdByUserId/updatedByUserId when needed.
+    - actorUserId is only the audit actor, not a persisted field.
+    - Shared CRUD audit events use EntityCrudEvent; concrete services must not emit duplicate CRUD events.
+    - Run npx prisma generate after any schema.prisma change.
+    - API response envelopes are centralized in ResponseHelper: controllers use ResponseHelper.success(...) and GlobalHttpExceptionFilter uses ResponseHelper.error(...).
+  audit_opt_out:
+    mechanism: Pass entityType: null to BaseService constructor.
+    effect: Suppresses only shared entity.created/entity.updated/entity.deleted audit events.
+    constraints:
+      - Use only when the entity has its own lifecycle domain events or rows carry secrets that must never reach the audit log.
+      - Opted-out entities must not be added to AuditEntityType, AuditAction, or AuditLogListener.
+    reference: InvitationsService
+  known_non_compliant_modules:
+    auth:
+      status: pending migration
+      note: Uses UserRepository and must not be copied as precedent; do not refactor during unrelated work.
+
+bulk_api_validation_error_format:
+  applies_to: every create-many / update-many endpoint taking items[]
+  required_path_format: items.<zeroBasedIndex>.<fieldName>
+  example:
+    fieldErrors:
+      items.0.employeeCode:
+        - Employee code is already in use.
+      items.1.email:
+        - Email is already in use.
+  rules:
+    - Return granular per-row field paths, never one blanket message on items.
+    - Dot-separated paths are required, not items[0].field.
+    - One entry per offending row and field.
+    - Nested DTO errors already work through validationExceptionFactory.
+    - Array-level constraints must record granular paths through src/common/validators/bulk-field-error-collector.ts.
+    - In validators, recordBulkFieldError(...) and still return false.
+    - Do not move batched array constraints onto each item because that creates N+1 database queries and cannot see sibling rows.
+    - Do not validate in controllers.
+    - Match database rows back to submitted rows per field independently.
+    - PostgreSQL IN is case-sensitive; query with submitted values as-is.
+    - This covers 400 VALIDATION_ERROR responses. 409 database race conflicts remain coarse unless a separate task solves row attribution.
+  reference_implementation: backend/src/modules/employee/validators/employee-bulk-dto.validator.ts
+
+database_rules:
+  - Database design must be specified before Prisma schema or migration changes.
+  - Every database change must update database spec.
+  - Do not use destructive database resets unless the user explicitly approves.
+
+frontend_rules:
+  state_ownership:
+    redux: global client state
+    tanstack_query: server state
+    local_react_state: UI state
+  rules:
+    - API URLs are centralized in frontend/src/shared/api/api-endpoints.ts, not hard-coded in components.
+    - API failures are normalized in frontend/src/shared/api/api-client.ts.
+    - Non-401 API failures show one global react-toastify error toast from the Axios response interceptor.
+    - Server fieldErrors for React Hook Form pages map through frontend/src/shared/hooks/useApiFieldErrors.ts / applyApiFieldErrors(...).
+    - Use the useApiFieldErrors path mapper when API payload paths differ from form state paths, such as Organization create items[n].* -> rows[n].* and Organization edit items.0.* -> *.
+    - For confirm-dialog submit flows, close the dialog when the API call fails, then surface the error through global toast and/or field errors.
+    - Do not leave a failed submit confirmation dialog stuck open.
+    - Many-row table forms use frontend/src/shared/components/RequiredHeader.tsx to mark required column headers.
+    - Employee bulk phone fields use type="number" inputs.
+    - Pages/table work areas should use fixed viewport-relative heights with Tailwind arbitrary values in the form h-[calc(100vh-${num}px)], choosing the pixel offset per layout context.
+    - List pages with search/page/limit/sort/sort-order use the shared list query hook such as useListQueryState.
+    - JSX attributes stay on one line per element/component, even when long.
+    - Organization Create/Edit modals no longer expose the old enum Type field; they use organizationTypeId / Organization Type selection while the backend enum column remains.
+    - Destructive actions confirm first; capture ids once at confirm time so state changes mid-flight cannot alter the in-flight request.
+    - Organization chart node delete follows the same destructive-action rule: node [x] opens ConfirmDialog and DELETE /api/organizations runs only after confirm.
+  auth_token_storage:
+    storage: expiring client-side cookie
+    module: frontend/src/shared/auth/token-storage.ts
+    rules:
+      - token-storage.ts is the only module allowed to touch document.cookie for the access token.
+      - Cookie expiry is derived from the JWT exp claim; never hard-code a lifetime.
+      - Secure is set only on HTTPS so local HTTP dev works.
+      - Token is deliberately not encrypted; client-side encryption was rejected because the key would ship in the JS bundle.
+      - The backend still authenticates by Authorization: Bearer header only; withCredentials stays false.
+
+testing_rules:
+  - Do not create unit test files or run tests during normal coding unless the user explicitly asks for UT/test execution.
+  - If tests/builds are run, report the exact command and honest result.
+  - If Playwright is used or configured, default to visible browser execution with use: { headless: false }.
+  - Do not use headless Playwright unless the user explicitly asks.
+
+end_of_session_rules:
+  - After each working session/task, update memory.yaml if durable rules or verified project facts changed.
+  - After each working session/task, append meaningful events to the daily JSONL history file using append-history.ps1.
+  - After each working session/task, update docs/09-workflow/session-context.md with the current handoff state.
+  - Memory is distilled knowledge; history is chronological evidence; session context is the current handoff.
+
+history_scripts:
+  location: docs/09-workflow/scripts/history/
+  run_from: repo root C:/test-project
+  append:
+    script: append-history.ps1
+    purpose: Append exactly one compact JSON line to docs/09-workflow/history/<today>.jsonl.
+    required_args:
+      - EventType
+      - SessionId
+      - Scope
+    optional_args:
+      - TaskId
+      - Actor
+      - Summary
+      - HistoryRoot
+    example: .\docs\09-workflow\scripts\history\append-history.ps1 -EventType task_completed -SessionId "2026-08-28-a" -TaskId "WORK-024" -Scope "backend/invitations" -Summary "InvitationsService now extends BaseService"
+  query:
+    script: query-history.ps1
+    purpose: Read/filter JSONL events by SessionId, TaskId, EventType, or Scope.
+  validate:
+    script: validate-history.ps1
+    purpose: Validate JSONL integrity, required fields, allowed event types, timestamps, payload shape, and likely unredacted secrets.
+  allowed_event_types:
+    - session_started
+    - session_completed
+    - task_started
+    - task_resumed
+    - task_paused
+    - task_completed
+    - task_failed
+    - user_instruction
+    - decision
+    - finding
+    - finding_updated
+    - blocker_found
+    - blocker_resolved
+    - source_inspected
+    - file_modified
+    - command_executed
+    - test_started
+    - test_result
+    - build_result
+    - validation_result
+    - artifact_created
+    - artifact_updated
+    - memory_candidate_created
+    - memory_promoted
+    - memory_superseded
+    - conflict_detected
+    - error
+    - checkpoint

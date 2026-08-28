@@ -15,6 +15,7 @@ Define safe error handling across backend, API, and frontend.
 - Return safe error codes/messages externally.
 - Do not expose stack traces or raw backend errors.
 - Do not log secrets or credentials.
+- Centralize response construction: controllers use `ResponseHelper.success(...)`, and `GlobalHttpExceptionFilter` uses `ResponseHelper.error(...)`.
 
 ## API Error Categories
 - Validation error.
