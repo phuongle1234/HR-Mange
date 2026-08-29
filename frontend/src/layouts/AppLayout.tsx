@@ -4,9 +4,11 @@ import { useAuth } from '../providers/useAuth';
 import { Breadcrumb } from '../shared/components/Breadcrumb';
 import { cn } from '../shared/utils/cn';
 import type { RouteHandle } from '../routes/route.types';
+import { NotificationBell } from '../features/notification/components/NotificationBell';
+import { WorkflowSocketProvider } from '../features/workflow/components/WorkflowSocketProvider';
 
 interface NavItem {
-  key: 'employee.list' | 'employee.create' | 'organization.chart' | 'organization.types';
+  key: 'employee.list' | 'employee.create' | 'organization.chart' | 'organization.types' | 'workflow.list' | 'workflow.requests' | 'workflow.inbox';
   label: string;
   to: string;
 }
@@ -29,6 +31,14 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: 'organization.chart', label: 'Organization Chart', to: '/organizations' },
       { key: 'organization.types', label: 'Organization Types', to: '/organizations/types' },
+    ],
+  },
+  {
+    label: 'Workflow',
+    items: [
+      { key: 'workflow.list', label: 'Workflow Definitions', to: '/workflows' },
+      { key: 'workflow.requests', label: 'My Requests', to: '/workflow-requests' },
+      { key: 'workflow.inbox', label: 'Reviewer Inbox', to: '/workflow-requests/inbox' },
     ],
   },
 ];
@@ -151,7 +161,10 @@ function Navbar({ handle }: { handle: RouteHandle }) {
         )}
         <h1 className="text-lg font-black text-slate-950">{handle.title}</h1>
       </div>
-      <UserMenu />
+      <div className="flex items-center gap-3">
+        <NotificationBell />
+        <UserMenu />
+      </div>
     </header>
   );
 }
@@ -168,6 +181,7 @@ export function AppLayout() {
         <Navbar handle={handle} />
         <main className="flex-1 p-2 sm:p-6 lg:p-4">
           {handle.breadcrumb && <Breadcrumb items={handle.breadcrumb} />}
+          <WorkflowSocketProvider />
           <Outlet />
         </main>
       </div>

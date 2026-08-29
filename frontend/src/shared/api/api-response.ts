@@ -5,6 +5,7 @@ export interface ApiListMeta {
   page: number;
   limit: number;
   total: number;
+  unreadCount?: number;
 }
 
 export interface ApiEnvelope<T> {

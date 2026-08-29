@@ -32,3 +32,24 @@ export const changePasswordSchema = z
     path: ['confirmNewPassword'],
   });
 export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+
+/**
+ * Redeeming an invitation. Reuses `newPasswordSchema` so the client policy
+ * matches what the backend enforces (min 8, at least one letter and one
+ * number) - a divergence here would show a form that passes locally and then
+ * fails on submit.
+ *
+ * `token` comes from the URL, not from a user input, so it is validated only
+ * as non-empty; the backend is the authority on whether it is real.
+ */
+export const acceptInvitationSchema = z
+  .object({
+    token: z.string().min(1, 'Invitation token is required'),
+    password: newPasswordSchema,
+    confirmPassword: z.string().min(1, 'Confirm your password'),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+export type AcceptInvitationFormValues = z.infer<typeof acceptInvitationSchema>;

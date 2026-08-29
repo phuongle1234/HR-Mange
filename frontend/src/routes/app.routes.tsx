@@ -18,6 +18,13 @@ import { OrganizationTypeCreatePage } from '../features/organization-type/pages/
 import { OrganizationTypeListPage } from '../features/organization-type/pages/OrganizationTypeListPage';
 import { OrganizationTypeUpdatePage } from '../features/organization-type/pages/OrganizationTypeUpdatePage';
 import { NotFoundPage } from '../shared/components/NotFoundPage';
+import { WorkflowListPage } from '../features/workflow/pages/WorkflowListPage';
+import { WorkflowCreatePage } from '../features/workflow/pages/WorkflowCreatePage';
+import { WorkflowEditPage } from '../features/workflow/pages/WorkflowEditPage';
+import { WorkflowRequestSubmitPage } from '../features/workflow/pages/WorkflowRequestSubmitPage';
+import { MyRequestsPage } from '../features/workflow/pages/MyRequestsPage';
+import { ReviewerInboxPage } from '../features/workflow/pages/ReviewerInboxPage';
+import { WorkflowRequestDetailPage } from '../features/workflow/pages/WorkflowRequestDetailPage';
 import type { RouteHandle } from './route.types';
 
 const EMPLOYEE_BREADCRUMB_ROOT = { label: 'Employee', to: '/employees' };
@@ -110,6 +117,41 @@ export const router = createBrowserRouter([
             path: '/organizations/types/update',
             element: <OrganizationTypeUpdatePage />,
             handle: handle({ title: 'Update Organization Types', navbarBackButton: true, navbarBackTarget: '/organizations/types', sidebarActiveKey: 'organization.types', breadcrumb: [ORGANIZATION_BREADCRUMB_ROOT, ORGANIZATION_TYPE_BREADCRUMB, { label: 'Update' }] }),
+          },
+          {
+            path: '/workflows',
+            element: <WorkflowListPage />,
+            handle: handle({ title: 'Workflows', sidebarActiveKey: 'workflow.list', breadcrumb: [{ label: 'Workflows' }] }),
+          },
+          {
+            path: '/workflows/create',
+            element: <WorkflowCreatePage />,
+            handle: handle({ title: 'Create Workflow', navbarBackButton: true, navbarBackTarget: '/workflows', sidebarActiveKey: 'workflow.create', breadcrumb: [{ label: 'Workflows', to: '/workflows' }, { label: 'Create' }] }),
+          },
+          {
+            path: '/workflows/:id/edit',
+            element: <WorkflowEditPage />,
+            handle: handle({ title: 'Edit Workflow', navbarBackButton: true, navbarBackTarget: '/workflows', sidebarActiveKey: 'workflow.list', breadcrumb: [{ label: 'Workflows', to: '/workflows' }, { label: 'Edit' }] }),
+          },
+          {
+            path: '/workflow-requests/new',
+            element: <WorkflowRequestSubmitPage />,
+            handle: handle({ title: '', navbarBackButton: true, navbarBackTarget: '/workflow-requests', sidebarActiveKey: 'workflow.requests', breadcrumb: [{ label: 'My Requests', to: '/workflow-requests' }, { label: 'New Request' }] }),
+          },
+          {
+            path: '/workflow-requests',
+            element: <MyRequestsPage />,
+            handle: handle({ title: 'My Requests', sidebarActiveKey: 'workflow.requests', breadcrumb: [{ label: 'My Requests' }] }),
+          },
+          {
+            path: '/workflow-requests/inbox',
+            element: <ReviewerInboxPage />,
+            handle: handle({ title: 'Reviewer Inbox', sidebarActiveKey: 'workflow.inbox', breadcrumb: [{ label: 'Reviewer Inbox' }] }),
+          },
+          {
+            path: '/workflow-requests/:id',
+            element: <WorkflowRequestDetailPage />,
+            handle: handle({ title: 'Workflow Request Detail', navbarBackButton: true, navbarBackTarget: '/workflow-requests', sidebarActiveKey: 'workflow.requests', breadcrumb: [{ label: 'My Requests', to: '/workflow-requests' }, { label: 'Detail' }] }),
           },
         ],
       },

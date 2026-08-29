@@ -63,6 +63,8 @@ src
     ├── employee
     ├── organization
     ├── organization-type
+    ├── workflow
+    ├── notification
     └── invitations
 ```
 
@@ -190,6 +192,40 @@ Rules:
 - Shared arrow-key table input focus behavior belongs in `shared/hooks/useGridInputNavigation.ts`.
 - Shared list query state behavior belongs in `shared/hooks/useListQueryState.ts`.
 
+Workflow feature proposed structure (2026-08-29):
+
+```text
+src/features/workflow
+├── pages
+├── components
+├── hooks
+├── services
+├── schemas
+├── types
+└── utils
+```
+
+Rules:
+- Workflow definition Create/Edit pages compose `FormSchemaBuilder`, `WorkflowStepBuilder`, and `WorkflowFlow`.
+- `DynamicFormRenderer` is used only for workflow request submission, not workflow definition editing.
+- Workflow actions are driven by backend `permissions.can*` fields and send the latest `revision`.
+- Workflow socket handlers invalidate TanStack Query caches only.
+
+Notification feature proposed structure (2026-08-29):
+
+```text
+src/features/notification
+├── components
+├── hooks
+├── services
+├── types
+└── utils
+```
+
+Rules:
+- Notification unread count is server state from TanStack Query, not Redux.
+- The bell is mounted beside the account menu without changing the account menu behavior.
+
 ## State Ownership
 | State | Owner |
 | --- | --- |
@@ -200,6 +236,9 @@ Rules:
 | Organization type list/by-ids data | TanStack Query |
 | Organization type checked ids for update handoff | Redux Toolkit |
 | Organization/Organization Type select options (Employee bulk editor, Organization modals) | TanStack Query, fetched once and reused across rows, never per-row |
+| Workflow definitions, workflow requests, and notifications | TanStack Query |
+| Workflow definition builder step drafts | Local React state until saved through `replaceSteps` |
+| Workflow request action dialog/comment state | Local React state |
 | Create/edit form values | React Hook Form |
 | Auth form values (including invitation-accept) | React Hook Form |
 | Search/filter/page UI state | Local React state or approved URL search params |

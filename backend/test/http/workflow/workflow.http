@@ -1,0 +1,124 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+@workflowId = REPLACE_WITH_WORKFLOW_ID
+@workflowRequestId = REPLACE_WITH_WORKFLOW_REQUEST_ID
+@organizationTypeId = REPLACE_WITH_ORGANIZATION_TYPE_ID
+
+### List workflows
+GET {{baseUrl}}/workflows?page=1&limit=10&sortBy=createdAt&sortOrder=desc
+Authorization: Bearer {{access_token}}
+
+### List workflows filtered by status
+GET {{baseUrl}}/workflows?status=ACTIVE&search=leave
+Authorization: Bearer {{access_token}}
+
+### Create workflow (status defaults to DRAFT)
+POST {{baseUrl}}/workflows
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "code": "LEAVE_REQUEST",
+  "name": "Dang ky nghi phep",
+  "description": "Leave request approval flow",
+  "formSchema": {
+    "fields": [
+      {
+        "key": "leaveType",
+        "label": "Loai nghi phep",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "label": "Nghi phep nam", "value": "ANNUAL" },
+          { "label": "Nghi benh", "value": "SICK" }
+        ]
+      },
+      { "key": "startDate", "label": "Ngay bat dau", "type": "date", "required": true },
+      { "key": "endDate", "label": "Ngay ket thuc", "type": "date", "required": true },
+      { "key": "reason", "label": "Ly do", "type": "textarea", "required": true }
+    ]
+  }
+}
+
+### Get workflow detail (includes steps ordered root-first by parentId)
+GET {{baseUrl}}/workflows/{{workflowId}}
+Authorization: Bearer {{access_token}}
+
+### Update workflow (code is immutable and cannot be sent)
+PUT {{baseUrl}}/workflows/{{workflowId}}
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "name": "Dang ky nghi phep (updated)",
+  "status": "ACTIVE"
+}
+
+### Replace the whole step chain (server derives parentId from array order)
+POST {{baseUrl}}/workflows/{{workflowId}}/steps
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "steps": [
+    { "name": "Team Lead", "organizationTypeId": "{{organizationTypeId}}" },
+    { "name": "Manager", "organizationTypeId": "{{organizationTypeId}}" },
+    { "name": "Department Manager", "organizationTypeId": "{{organizationTypeId}}" }
+  ]
+}
+
+### Submit a workflow request
+POST {{baseUrl}}/workflow-requests
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "workflowId": "{{workflowId}}",
+  "formData": {
+    "leaveType": "ANNUAL",
+    "startDate": "2026-09-01",
+    "endDate": "2026-09-03",
+    "reason": "Nghi phep nam"
+  }
+}
+
+### My requests (scope defaults to mine)
+GET {{baseUrl}}/workflow-requests?scope=mine&page=1&limit=10
+Authorization: Bearer {{access_token}}
+
+### Reviewer inbox (requests awaiting my decision)
+GET {{baseUrl}}/workflow-requests?scope=inbox&page=1&limit=10
+Authorization: Bearer {{access_token}}
+
+### Workflow request detail (includes per-actor permissions)
+GET {{baseUrl}}/workflow-requests/{{workflowRequestId}}
+Authorization: Bearer {{access_token}}
+
+### Workflow request histories (createdAt ascending, immutable)
+GET {{baseUrl}}/workflow-requests/{{workflowRequestId}}/histories
+Authorization: Bearer {{access_token}}
+
+### Negative: submit against a DRAFT/ARCHIVED workflow -> 400 WORKFLOW_NOT_ACTIVE
+### Negative: submit with a missing required field -> 400 with formData.<key> field error
+POST {{baseUrl}}/workflow-requests
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "workflowId": "{{workflowId}}",
+  "formData": {
+    "leaveType": "ANNUAL",
+    "startDate": "2026-09-01"
+  }
+}
+
+### Negative: replace steps while a request is in flight -> 409 WORKFLOW_HAS_ACTIVE_REQUESTS
+POST {{baseUrl}}/workflows/{{workflowId}}/steps
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "steps": [
+    { "name": "Team Lead", "organizationTypeId": "{{organizationTypeId}}" }
+  ]
+}

@@ -1,0 +1,78 @@
+@baseUrl = http://localhost:3000/api
+@access_token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+@employeeId = REPLACE_WITH_EMPLOYEE_ID
+@invitationToken = REPLACE_WITH_RAW_TOKEN_FROM_INVITATION_EMAIL
+
+### Create invitations for one or more employees (authenticated)
+### Employees that already have a user account, are missing an email, or do not
+### exist come back under `skipped` with a reason - the call still returns 201.
+POST {{baseUrl}}/invitations
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "employeeIds": ["{{employeeId}}"]
+}
+
+### Accept an invitation (UNAUTHENTICATED - the raw token is the credential)
+### The raw token only ever exists in the emailed URL; the database stores its
+### hash. Success creates the User, sets employees.user_id, and closes the
+### invitation - then the client redirects to /login (no token is returned).
+POST {{baseUrl}}/auth/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "password": "NewPass123",
+  "confirmPassword": "NewPass123"
+}
+
+### Negative: password and confirmPassword differ -> 400 VALIDATION_ERROR
+POST {{baseUrl}}/auth/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "password": "NewPass123",
+  "confirmPassword": "OtherPass123"
+}
+
+### Negative: password fails the policy (needs a letter and a number) -> 400 PASSWORD_POLICY_FAILED
+POST {{baseUrl}}/auth/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "password": "passwordonly",
+  "confirmPassword": "passwordonly"
+}
+
+### Negative: unknown token -> 404 INVITATION_TOKEN_INVALID
+### Deliberately generic so the endpoint cannot be used to probe for valid tokens.
+POST {{baseUrl}}/auth/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "0000000000000000000000000000000000000000000000000000000000000000",
+  "password": "NewPass123",
+  "confirmPassword": "NewPass123"
+}
+
+### Negative: replay the same token after a successful accept -> 409 INVITATION_ALREADY_ACCEPTED
+POST {{baseUrl}}/auth/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "password": "NewPass123",
+  "confirmPassword": "NewPass123"
+}
+
+### After accepting, log in with the invited employee's email to confirm the account works
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "REPLACE_WITH_INVITED_EMPLOYEE_EMAIL",
+  "password": "NewPass123"
+}

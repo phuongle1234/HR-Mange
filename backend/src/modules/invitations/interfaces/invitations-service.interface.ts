@@ -1,5 +1,6 @@
 import { Invitation, Prisma } from '@prisma/client';
 import { IBaseService } from '../../../common/interfaces/base.interface';
+import { AcceptInvitationDto } from '../dto/accept-invitation.dto';
 import { GetInvitationsQueryDto } from '../dto/get-invitations-query.dto';
 
 export interface InvitationCreatedResult {
@@ -41,4 +42,14 @@ export interface IInvitationsService
   createInvitations(employeeIds: string[], actorUserId: string): Promise<CreateInvitationsResult>;
   markSent(invitationId: string): Promise<void>;
   markSendFailed(invitationId: string, errorMessage: string): Promise<void>;
+
+  /**
+   * Redeems an invitation: creates the `User`, links it to the `Employee`, and
+   * marks the invitation `ACCEPTED` - all in one transaction.
+   *
+   * Unauthenticated: the raw token is the caller's only credential, so this
+   * takes no `actorUserId`. It is also the only path that sets
+   * `employees.user_id`.
+   */
+  acceptInvitation(dto: AcceptInvitationDto): Promise<void>;
 }

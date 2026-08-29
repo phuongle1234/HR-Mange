@@ -56,6 +56,7 @@ model User {
   createdOrganizationTypes OrganizationType[] @relation("OrganizationTypeCreatedBy")
   updatedOrganizationTypes OrganizationType[] @relation("OrganizationTypeUpdatedBy")
   auditLogs                AuditLog[]
+  createdWorkflows         Workflow[]         @relation("WorkflowCreatedBy")
 
   @@map("users")
 }
@@ -81,6 +82,9 @@ model Employee {
   createdBy    User?         @relation("EmployeeCreatedBy", fields: [createdByUserId], references: [id])
   updatedBy    User?         @relation("EmployeeUpdatedBy", fields: [updatedByUserId], references: [id])
   invitations  Invitation[]
+  workflowRequests  WorkflowRequest[] @relation("EmployeeWorkflowRequests")
+  workflowHistories WorkflowHistory[] @relation("EmployeeWorkflowHistories")
+  notifications     Notification[]    @relation("EmployeeNotifications")
 
   @@index([status])
   @@index([status, createdAt])
@@ -131,6 +135,7 @@ model OrganizationType {
   createdBy     User?          @relation("OrganizationTypeCreatedBy", fields: [createdByUserId], references: [id])
   updatedBy     User?          @relation("OrganizationTypeUpdatedBy", fields: [updatedByUserId], references: [id])
   organizations Organization[]
+  workflowSteps WorkflowStep[]
 
   @@map("organization_types")
 }
@@ -174,4 +179,177 @@ model AuditLog {
   @@index([performedByUserId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Workflow module (WORK-028). Contract: docs/09-workflow/plans/workflow-module/
+// workflow-contract.md sections 2.1-2.5.
+//
+// The approval chain is a LINKED LIST via WorkflowStep.parentId - each step has
+// at most one child. `stepOrder` is display/tiebreak ordering only and is never
+// the chain source, because "the next step" must be unambiguous for the engine
+// (see contract 2.2 / 7.3).
+//
+// No React Flow coordinate columns exist here by design (contract 2.2): node
+// positions are computed client-side by dagre, so persisting them would create
+// a second, drifting source of truth.
+// ---------------------------------------------------------------------------
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WorkflowRequestStatus {
+  DRAFT
+  IN_PROGRESS
+  NEEDS_REVISION
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum WorkflowAction {
+  SUBMIT
+  RESUBMIT
+  REVIEW
+  APPROVE
+  FEEDBACK
+  REJECT
+  CANCEL
+}
+
+enum NotificationType {
+  WORKFLOW_REQUEST_SUBMITTED
+  WORKFLOW_REQUEST_APPROVED
+  WORKFLOW_REQUEST_FEEDBACK
+  WORKFLOW_REQUEST_REJECTED
+  WORKFLOW_REQUEST_COMPLETED
+  WORKFLOW_REQUEST_CANCELLED
+}
+
+model Workflow {
+  id          String         @id @default(uuid())
+  code        String         @unique @db.VarChar(50)
+  name        String         @db.VarChar(255)
+  description String?        @db.Text
+  formSchema  Json           @map("form_schema")
+  status      WorkflowStatus @default(DRAFT)
+  // Informational only in this phase - requests do not pin a version.
+  version     Int            @default(1)
+
+  createdByUserId String?  @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  createdBy User?             @relation("WorkflowCreatedBy", fields: [createdByUserId], references: [id])
+  steps     WorkflowStep[]
+  requests  WorkflowRequest[]
+
+  @@index([status])
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id         String @id @default(uuid())
+  workflowId String @map("workflow_id")
+  // null = root step (the first approver). Chain source of truth.
+  parentId   String? @map("parent_id")
+  // Display label only ("Team Lead"). NEVER used for logic - authority comes
+  // from organizationTypeId alone (contract 4).
+  name       String @db.VarChar(255)
+  organizationTypeId String @map("organization_type_id")
+  stepOrder          Int    @map("step_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workflow         Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  parent           WorkflowStep?    @relation("WorkflowStepChain", fields: [parentId], references: [id], onDelete: Cascade)
+  children         WorkflowStep[]   @relation("WorkflowStepChain")
+  organizationType OrganizationType @relation(fields: [organizationTypeId], references: [id], onDelete: Restrict)
+
+  currentForRequests WorkflowRequest[] @relation("WorkflowRequestCurrentStep")
+  histories          WorkflowHistory[]
+
+  @@index([workflowId])
+  @@index([parentId])
+  @@index([organizationTypeId])
+  @@map("workflow_steps")
+}
+
+model WorkflowRequest {
+  id         String @id @default(uuid())
+  workflowId String @map("workflow_id")
+  employeeId String @map("employee_id")
+  // null only when terminal (APPROVED / REJECTED / CANCELLED).
+  currentStepId String? @map("current_step_id")
+
+  status   WorkflowRequestStatus @default(IN_PROGRESS)
+  formData Json                  @map("form_data")
+  // Optimistic-lock token (contract 8.2). Agent 2 updates conditionally on it
+  // so two concurrent approvals cannot both succeed.
+  revision Int                   @default(0)
+
+  submittedAt DateTime? @map("submitted_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workflow    Workflow      @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  employee    Employee      @relation("EmployeeWorkflowRequests", fields: [employeeId], references: [id], onDelete: Restrict)
+  currentStep WorkflowStep? @relation("WorkflowRequestCurrentStep", fields: [currentStepId], references: [id], onDelete: Restrict)
+
+  histories WorkflowHistory[]
+
+  @@index([employeeId])
+  @@index([currentStepId])
+  @@index([status])
+  @@index([workflowId])
+  @@map("workflow_requests")
+}
+
+// Immutable, insert-only (contract 2.4). No update or delete path may exist.
+model WorkflowHistory {
+  id                String @id @default(uuid())
+  workflowRequestId String @map("workflow_request_id")
+  // null for SUBMIT / RESUBMIT / CANCEL - the requester acts at no step.
+  workflowStepId    String? @map("workflow_step_id")
+  employeeId        String @map("employee_id")
+
+  action  WorkflowAction
+  comment String?        @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workflowRequest WorkflowRequest @relation(fields: [workflowRequestId], references: [id], onDelete: Cascade)
+  workflowStep    WorkflowStep?   @relation(fields: [workflowStepId], references: [id], onDelete: Restrict)
+  employee        Employee        @relation("EmployeeWorkflowHistories", fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([workflowRequestId])
+  @@index([workflowRequestId, createdAt])
+  @@map("workflow_histories")
+}
+
+// Owned by Agent 2 (WORK-029) at the API layer; the model lives here so the
+// whole module ships in one migration and app.module.ts is edited once.
+model Notification {
+  id                  String           @id @default(uuid())
+  recipientEmployeeId String           @map("recipient_employee_id")
+  type                NotificationType
+  title               String           @db.VarChar(255)
+  message             String           @db.Text
+  // The workflowRequestId. Deliberately a plain string, not an FK, so
+  // notifications stay usable by future non-workflow sources (contract 2.5).
+  referenceId         String?          @map("reference_id")
+  isRead              Boolean          @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  recipient Employee @relation("EmployeeNotifications", fields: [recipientEmployeeId], references: [id], onDelete: Cascade)
+
+  @@index([recipientEmployeeId])
+  @@index([recipientEmployeeId, isRead])
+  @@map("notifications")
 }

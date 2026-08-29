@@ -162,3 +162,106 @@ export class UserAlreadyExistsException extends AppException {
     super(ErrorCode.USER_ALREADY_EXISTS, 'A user account already exists for this employee.', HttpStatus.CONFLICT);
   }
 }
+
+// --- Workflow module (WORK-028 adds all of these in one pass, including the
+// ones only WORK-029's action engine throws, so this file is edited once) ---
+
+export class WorkflowNotFoundException extends AppException {
+  constructor(id: string) {
+    super(ErrorCode.WORKFLOW_NOT_FOUND, `Workflow with id "${id}" was not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
+export class WorkflowCodeExistsException extends AppException {
+  constructor() {
+    super(ErrorCode.WORKFLOW_CODE_EXISTS, 'A workflow with this code already exists.', HttpStatus.CONFLICT);
+  }
+}
+
+export class WorkflowNotActiveException extends AppException {
+  constructor() {
+    super(
+      ErrorCode.WORKFLOW_NOT_ACTIVE,
+      'This workflow is not active and cannot accept new requests.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+export class WorkflowHasNoStepsException extends AppException {
+  constructor() {
+    super(
+      ErrorCode.WORKFLOW_HAS_NO_STEPS,
+      'This workflow has no approval steps configured.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
+/**
+ * Rewiring a step chain while a request is mid-flight would leave that
+ * request's current_step_id dangling, so replace-chain is refused instead.
+ */
+export class WorkflowHasActiveRequestsException extends AppException {
+  constructor() {
+    super(
+      ErrorCode.WORKFLOW_HAS_ACTIVE_REQUESTS,
+      'This workflow has in-progress requests and its steps cannot be changed.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+
+export class WorkflowStepNotFoundException extends AppException {
+  constructor(id: string) {
+    super(ErrorCode.WORKFLOW_STEP_NOT_FOUND, `Workflow step with id "${id}" was not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
+export class WorkflowRequestNotFoundException extends AppException {
+  constructor(id: string) {
+    super(
+      ErrorCode.WORKFLOW_REQUEST_NOT_FOUND,
+      `Workflow request with id "${id}" was not found.`,
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+/**
+ * The optimistic-lock loser: the request advanced between read and write, so
+ * the caller acted on a state that no longer exists. 409, not 403 - the actor
+ * may well be allowed, they were simply too late (contract 6).
+ */
+export class WorkflowRequestStaleException extends AppException {
+  constructor() {
+    super(
+      ErrorCode.WORKFLOW_REQUEST_STALE,
+      'This request was updated by someone else. Reload and try again.',
+      HttpStatus.CONFLICT,
+    );
+  }
+}
+
+export class WorkflowRequestInvalidStateException extends AppException {
+  constructor(message = 'This action is not allowed for the request current state.') {
+    super(ErrorCode.WORKFLOW_REQUEST_INVALID_STATE, message, HttpStatus.CONFLICT);
+  }
+}
+
+/**
+ * The actor is not permitted to perform this action at all - wrong
+ * organization scope, or not the requester for a requester-only action. 403,
+ * never 409 (contract 6).
+ */
+export class WorkflowActionNotAllowedException extends AppException {
+  constructor(message = 'You are not allowed to perform this action on this request.') {
+    super(ErrorCode.WORKFLOW_ACTION_NOT_ALLOWED, message, HttpStatus.FORBIDDEN);
+  }
+}
+
+export class NotificationNotFoundException extends AppException {
+  constructor(id: string) {
+    super(ErrorCode.NOTIFICATION_NOT_FOUND, `Notification with id "${id}" was not found.`, HttpStatus.NOT_FOUND);
+  }
+}

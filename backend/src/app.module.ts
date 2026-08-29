@@ -12,6 +12,8 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { OrganizationTypeModule } from './modules/organization-type/organization-type.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { WorkflowModule } from './modules/workflow/workflow.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { MailModule } from './common/mail/mail.module';
 
 @Module({
@@ -27,6 +29,8 @@ import { MailModule } from './common/mail/mail.module';
     OrganizationTypeModule,
     InvitationsModule,
     AuditLogModule,
+    WorkflowModule,
+    NotificationModule,
   ],
 })
 export class AppModule implements NestModule {

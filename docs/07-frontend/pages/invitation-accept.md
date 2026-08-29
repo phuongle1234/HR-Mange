@@ -29,13 +29,18 @@ Route-level decisions:
 src/features/auth/pages/InvitationAcceptPage.tsx
 ```
 
-## Proposed Files
+## Implemented Files
 ```text
 src/features/auth/pages/InvitationAcceptPage.tsx
-src/features/auth/schemas/invitation-accept.schema.ts
-src/features/auth/hooks/useAcceptInvitationMutation.ts
-src/features/auth/services/auth.api.ts (extended with acceptInvitation(payload))
+src/features/auth/schemas/auth.schemas.ts          → acceptInvitationSchema
+src/features/invitations/hooks/useCreateInvitationsMutation.ts → useAcceptInvitationMutation
+src/features/invitations/services/invitations.api.ts          → accept(payload)
+src/features/invitations/types/invitation.types.ts            → AcceptInvitationPayload
 ```
+
+The schema lives in the shared `auth.schemas.ts` rather than its own file so it can reuse `newPasswordSchema` — the same policy object `changePasswordSchema` uses. A separate copy of the policy would be free to drift from what the backend enforces.
+
+The mutation and API service live under `features/invitations/` alongside the invite-creation call, since both hit the same module's endpoints. Only the page itself is an auth-feature concern.
 
 ## Responsibilities
 This spec owns:
@@ -105,6 +110,11 @@ toast.success("Account created successfully. You can now log in.", {
   position: "top-right"
 })
 ```
+
+## The API Call Fires Only On Submit
+The page must **not** call the accept endpoint on mount. Accepting is a one-time, irreversible state change that also requires a password the visitor has not typed yet: firing it on load would burn the token and leave the invitee permanently unable to finish, with no way to re-redeem the same link.
+
+This is called out explicitly because an earlier implementation did exactly that — a `useEffect` posted `{ token }` alone as soon as the page opened, with no password field anywhere on screen. It compiled and rendered, but could never succeed against the real API, which requires `password` and `confirmPassword`.
 
 ## Ambiguities
 None blocking. Whether the page should show the invited employee's name/email (read from the token before submit, via a lightweight "preview" API call) is not specified by the daily task and is not included in this contract — the accept endpoint only validates the token at submit time, not on page load.

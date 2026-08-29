@@ -78,6 +78,13 @@ There is no `permission` metadata key.
 | `/organizations/types` | `OrganizationTypeListPage` | `AppLayout` | yes | `Organization Types` | `organization.types` |
 | `/organizations/types/create` | `OrganizationTypeCreatePage` | `AppLayout` | yes | `Create Organization Types` | `organization.types` |
 | `/organizations/types/update` | `OrganizationTypeUpdatePage` | `AppLayout` | yes | `Update Organization Types` | `organization.types` |
+| `/workflows` | `WorkflowListPage` | `AppLayout` | yes | `Workflows` | `workflow.definitions` |
+| `/workflows/create` | `WorkflowCreatePage` | `AppLayout` | yes | `Create Workflow` | `workflow.definitions` |
+| `/workflows/:id/edit` | `WorkflowEditPage` | `AppLayout` | yes | `Edit Workflow` | `workflow.definitions` |
+| `/workflow-requests/new` | `WorkflowRequestSubmitPage` | `AppLayout` | yes | `Submit Workflow Request` | `workflow.submit` |
+| `/workflow-requests` | `MyRequestsPage` | `AppLayout` | yes | `My Requests` | `workflow.requests` |
+| `/workflow-requests/inbox` | `ReviewerInboxPage` | `AppLayout` | yes | `Reviewer Inbox` | `workflow.inbox` |
+| `/workflow-requests/:id` | `WorkflowRequestDetailPage` | `AppLayout` | yes | `Workflow Request Detail` | `workflow.requests` |
 | `*` | `NotFoundPage` | `NotFoundLayout` | no | `Page Not Found` | none |
 
 `/change-password` moved from `AppLayout`/`AuthGuard` to `AuthLayout` (ungated) — see "Change Password Route" below for what this means in practice.
@@ -86,6 +93,11 @@ There is no `permission` metadata key.
 - `/invitation/accept` is new — see `FRONTEND-INVITATION-ACCEPT`. Ungated the same way `/forgot-password`/`/change-password` are, not `PublicOnlyGuard`-gated (see that spec's Route Reference for why).
 - `/employees/create`'s content changes to a bulk table editor (`FRONTEND-EMPLOYEE-CREATE`); the path itself is unchanged.
 - `/employees/update` is new, replacing the **removed** `/employees/:id/edit` (`EmployeeEditPage`, single-record). See `FRONTEND-EMPLOYEE-EDIT` for the bulk replacement and its rationale.
+
+**2026-08-29 workflow changes:**
+- Workflow definition and request routes were added under the authenticated `AppLayout`.
+- `/workflow-requests/new` and `/workflow-requests/inbox` are declared before `/workflow-requests/:id`.
+- `sidebarActiveKey` includes `workflow.definitions`, `workflow.submit`, `workflow.requests`, and `workflow.inbox`.
 
 ## Login Route
 ```text

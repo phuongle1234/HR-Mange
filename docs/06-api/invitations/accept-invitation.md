@@ -19,7 +19,11 @@ depends_on:
 - URL: `/api/auth/invitations/accept`
 - Status: draft
 
-Route is under `/api/auth`, per the daily task's own explicit contract (task §28), even though the underlying `Invitation` row lives in the `invitations` module — this endpoint turns an `Employee` into a `User` (creates a login account), which is conceptually an auth-boundary operation, not a CRUD read/write on the invitation itself. Implementation placement (a method on the existing `AuthController` calling into `InvitationsService`, vs. a dedicated controller mounted at this path) is a backend-agent implementation detail; this contract only pins the route/request/response.
+Route is under `/api/auth`, per the daily task's own explicit contract (task §28), even though the underlying `Invitation` row lives in the `invitations` module — this endpoint turns an `Employee` into a `User` (creates a login account), which is conceptually an auth-boundary operation, not a CRUD read/write on the invitation itself.
+
+**Implemented as:** `InvitationAcceptController` (`backend/src/modules/invitations/controller/invitation-accept.controller.ts`), declared `@Controller('auth/invitations')` with `@Post('accept')`, registered in `InvitationsModule`.
+
+It is a separate controller rather than a method on `InvitationsController` because that class applies `@UseGuards(JwtAuthGuard)` at class level, and this endpoint must stay unauthenticated. Adding it there would have required either a per-route guard override or making the whole controller public — both worse than one small dedicated controller.
 
 ## Authentication
 - Required: **no** — the caller is not authenticated yet; the `token` in the request body is the credential.
@@ -107,6 +111,12 @@ Follows task §28's flow exactly:
 - On success, redirect to `/login` (task §28, explicit) — do not auto-login.
 - `INVITATION_TOKEN_INVALID`/`INVITATION_EXPIRED`/`INVITATION_ALREADY_ACCEPTED` all render as a page-level (not field-level) safe message, since none of them are about the password fields the user just typed.
 - `VALIDATION_ERROR` maps to `password`/`confirmPassword` fields.
+
+## Implementation Notes
+- **Password rules are enforced in the service, not only the DTO.** `AcceptInvitationDto` checks the minimum length; the confirm-match and the full policy (letter + number) run in `acceptInvitation` via `satisfiesPasswordPolicy`, exactly as `AuthService.changePassword` already does. A mismatch yields `VALIDATION_ERROR` with a `confirmPassword` field error; a policy failure yields `PASSWORD_POLICY_FAILED`.
+- **A missing `Employee` returns `INVITATION_TOKEN_INVALID`, not a 404 about the employee.** The invitation row cannot resolve to an account either way, and naming the employee would leak that a given token maps to a real record.
+- **`$transaction` is used for the three-table write** (create `User`, set `employees.user_id`, close the invitation). This spans three delegates, so no single inherited `BaseService` method can express it — the same sanctioned narrow exception the workflow action engine uses. Every other write in `InvitationsService` still goes through inherited base methods.
+- This endpoint is the **only** place `employees.user_id` is ever set. Until an employee has been through it, that employee's account cannot submit workflow requests (see `API-WORKFLOW-REQUEST-SUBMIT`'s Ambiguities).
 
 ## Ambiguities
 None blocking. Whether this flow should also log the new user in directly (skip the `/login` redirect) is not specified by the daily task; this contract follows task §28's explicit flow (redirect to `/login`) rather than inventing an auto-login behavior.

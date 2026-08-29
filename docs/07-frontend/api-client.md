@@ -76,6 +76,26 @@ ApiEndpoints
 │   ├── createMany
 │   ├── updateMany
 │   └── deleteMany
+├── workflows                       (2026-08-29)
+│   ├── list
+│   ├── detail(id)
+│   ├── create
+│   ├── update(id)
+│   └── replaceSteps(id)
+├── workflowRequests                (2026-08-29)
+│   ├── list
+│   ├── detail(id)
+│   ├── histories(id)
+│   ├── create
+│   ├── approve(id)
+│   ├── feedback(id)
+│   ├── reject(id)
+│   ├── cancel(id)
+│   └── resubmit(id)
+├── notifications                   (2026-08-29)
+│   ├── list
+│   ├── read(id)
+│   └── readAll
 └── invitations                   (2026-08-26)
     └── createMany
 ```
@@ -227,6 +247,37 @@ InvitationsApiService
 └── createMany(payload)
 ```
 
+Workflow service example (2026-08-29):
+
+```text
+WorkflowApiService
+├── list(query)
+├── detail(id)
+├── create(payload)
+├── update(id, payload)
+└── replaceSteps(id, steps)
+```
+
+Workflow request service example (2026-08-29):
+
+```text
+WorkflowRequestApiService
+├── list(query)
+├── detail(id)
+├── histories(id)
+├── create({ workflowId, formData })
+└── action(id, { action, revision, comment, formData? })
+```
+
+Notification service example (2026-08-29):
+
+```text
+NotificationApiService
+├── list()
+├── markRead(id)
+└── markAllRead()
+```
+
 Rules:
 - Services receive already-normalized payloads from page/hook helpers.
 - Services do not read component state directly.
@@ -255,6 +306,18 @@ useCreateOrganizationTypesMutation()
 useUpdateOrganizationTypesMutation()
 useDeleteOrganizationTypesMutation()
 useCreateInvitationsMutation()          (2026-08-26)
+useWorkflowsQuery()                     (2026-08-29)
+useWorkflowDetailQuery(id)              (2026-08-29)
+useCreateWorkflowMutation()             (2026-08-29)
+useUpdateWorkflowMutation()             (2026-08-29)
+useReplaceWorkflowStepsMutation()       (2026-08-29)
+useWorkflowRequestListQuery(query)      (2026-08-29)
+useWorkflowRequestDetailQuery(id)       (2026-08-29)
+useSubmitWorkflowRequestMutation()      (2026-08-29)
+useWorkflowActionMutation()             (2026-08-29)
+useNotificationsQuery()                 (2026-08-29)
+useMarkNotificationReadMutation()       (2026-08-29)
+useMarkAllNotificationsReadMutation()   (2026-08-29)
 useLoginMutation()
 useForgotPasswordMutation()
 useChangePasswordMutation()

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { Invitation } from '@prisma/client';
@@ -6,9 +7,19 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AppConfig } from '../../../config/configuration';
 import { BaseService } from '../../../common/services/base.service';
 import { PaginatedResult } from '../../../common/interfaces/base.interface';
-import { InvitationNotFoundException } from '../../../common/exceptions/app.exception';
+import {
+  InvitationAlreadyAcceptedException,
+  InvitationExpiredException,
+  InvitationNotFoundException,
+  InvitationTokenInvalidException,
+  PasswordPolicyFailedException,
+  UserAlreadyExistsException,
+  ValidationException,
+} from '../../../common/exceptions/app.exception';
+import { satisfiesPasswordPolicy } from '../../../common/utils/password-policy.util';
 import { generateInvitationToken, hashInvitationToken } from '../utils/invitation-token.util';
 import { INVITATION_CREATED_EVENT, InvitationCreatedEvent } from '../events/invitation-created.event';
+import { AcceptInvitationDto } from '../dto/accept-invitation.dto';
 import { GetInvitationsQueryDto } from '../dto/get-invitations-query.dto';
 import {
   CreateInvitationsResult,
@@ -18,6 +29,9 @@ import {
 } from '../interfaces/invitations-service.interface';
 
 const INVITATION_TTL_HOURS = 72;
+
+/** Same cost factor AuthService uses, so hashes stay consistent across the app. */
+const BCRYPT_SALT_ROUNDS = 10;
 
 interface PendingInvitationRow {
   employeeId: string;
@@ -31,9 +45,14 @@ interface PendingInvitationRow {
 /**
  * Follows the mandatory backend flow (AGENTS.md Backend Rules):
  * Controller -> IInvitationsService -> InvitationsService -> BaseService ->
- * Prisma -> PostgreSQL. All row writes go through inherited BaseService
- * methods via `this.createMany(...)` / `this.update(...)` - this service
- * never touches `this.prisma.invitation` directly.
+ * Prisma -> PostgreSQL. Single-row writes go through inherited BaseService
+ * methods via `this.createMany(...)` / `this.update(...)`.
+ *
+ * `acceptInvitation` is the one exception: it writes User + Employee +
+ * Invitation atomically, which spans three delegates and so cannot be
+ * expressed by any inherited base method (BaseService holds exactly one
+ * delegate). It uses `prisma.$transaction` for that write only - the same
+ * sanctioned narrow exception the workflow action engine uses.
  *
  * Audit eventing is opted out (`entityType: null` in the super call): the
  * Invitation lifecycle is tracked by this module's own
@@ -159,6 +178,57 @@ export class InvitationsService
       status: 'SEND_FAILED',
       sendAttempts: { increment: 1 },
       lastSendError: errorMessage,
+    });
+  }
+
+  /**
+   * Redeems an invitation (API-AUTH-INVITATIONS-ACCEPT).
+   *
+   * The raw token is never stored, so it is hashed with the same function used
+   * at creation time and matched against `tokenHash`.
+   *
+   * The three writes must be atomic: a User created without its Employee link
+   * would be an account nobody can act as, and an Employee linked to a User
+   * without the invitation being closed would let the same token be redeemed
+   * twice.
+   */
+  async acceptInvitation(dto: AcceptInvitationDto): Promise<void> {
+    if (dto.password !== dto.confirmPassword) {
+      throw new ValidationException({ confirmPassword: ['confirmPassword must match password.'] });
+    }
+    if (!satisfiesPasswordPolicy(dto.password)) {
+      throw new PasswordPolicyFailedException();
+    }
+
+    const invitation = await this.entity.findUnique({ where: { tokenHash: hashInvitationToken(dto.token) } });
+    // Deliberately generic: never reveal whether a token merely expired or
+    // never existed, so the endpoint cannot be used to probe for valid tokens.
+    if (!invitation) throw new InvitationTokenInvalidException();
+    if (invitation.status === 'ACCEPTED') throw new InvitationAlreadyAcceptedException();
+
+    // Checked on read: no background job writes status EXPIRED in this phase,
+    // so a still-PENDING row past its expiry is expired all the same.
+    if (invitation.expiresAt.getTime() < Date.now()) throw new InvitationExpiredException();
+
+    const employee = await this.prisma.employee.findUnique({ where: { id: invitation.employeeId } });
+    if (!employee) throw new InvitationTokenInvalidException();
+    if (employee.userId) throw new UserAlreadyExistsException();
+
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
+    const fullName = `${employee.firstName} ${employee.lastName}`.trim();
+
+    await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { email: invitation.email, passwordHash, fullName, isActive: true },
+      });
+
+      // This is the only place employees.user_id is ever set.
+      await tx.employee.update({ where: { id: employee.id }, data: { userId: user.id } });
+
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'ACCEPTED', acceptedAt: new Date() },
+      });
     });
   }
 }

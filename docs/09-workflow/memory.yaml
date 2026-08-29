@@ -17,6 +17,17 @@ source_authority:
 project_shape:
   name: EmployeeOS / Employee Management System
   workflow: specification-first
+  source_of_truth:
+    repo_root: C:/test-project
+    staging_worktree: C:/test-project.worktrees/read-agents-md-file-rules
+    rule: >
+      The canonical project directory is C:/test-project. Files for implementation must be created and edited directly in the main repo; temporary worktree directories are staging-only and are not the source of truth.
+  working_directory_rules:
+    canonical_repo: C:/test-project
+    forbidden_paths:
+      - C:/test-project.worktrees/
+    rule: >
+      Never write code, patch files, or create implementation artifacts inside temporary worktree directories. All active development must happen only in the canonical repo. Temp worktrees may be used only for review, staging, or merge preparation, never for actual editing.
   backend:
     stack:
       - NestJS
@@ -137,6 +148,7 @@ frontend_rules:
     - Organization Create/Edit modals no longer expose the old enum Type field; they use organizationTypeId / Organization Type selection while the backend enum column remains.
     - Destructive actions confirm first; capture ids once at confirm time so state changes mid-flight cannot alter the in-flight request.
     - Organization chart node delete follows the same destructive-action rule: node [x] opens ConfirmDialog and DELETE /api/organizations runs only after confirm.
+    - Use React Router client-side navigation (for example, useNavigate) for internal route changes; do not use window.location.assign, window.location.href, or another full-page reload for app routes.
   auth_token_storage:
     storage: expiring client-side cookie
     module: frontend/src/shared/auth/token-storage.ts
@@ -210,3 +222,20 @@ history_scripts:
     - conflict_detected
     - error
     - checkpoint
+
+workflow_frontend_implementation:
+  status: implemented
+  summary: >
+    Workflow module frontend integration is complete in the current checkout: route metadata and sidebar keys were widened,
+    the workflow pages and routes were added, the notification bell is mounted beside the account menu, and the socket
+    invalidation provider is active for workflow/notification cache refreshes. WORK-030 follow-up completed the missing
+    definition-builder wiring: WorkflowCreatePage and WorkflowEditPage compose FormSchemaBuilder, WorkflowStepBuilder,
+    and WorkflowFlow, then save the approval chain through workflowApiService.replaceSteps(...). WorkflowEditPage no
+    longer renders DynamicFormRenderer. Workflow actions use the contract can* permission fields, send revision, require
+    comments for feedback/reject, and refetch on WORKFLOW_REQUEST_STALE. WorkflowCreatePage's Form Schema and Approval
+    Steps editors use table-style multi-row layouts with checkbox row selection, ContextMenu actions, React Hook Form
+    field arrays, Zod validation, useGridInputNavigation, and useApplyApiFieldErrors. The frontend production build passed with
+    "cd frontend; npm run build".
+  validation:
+    command: cd frontend; npm run build
+    result: passed

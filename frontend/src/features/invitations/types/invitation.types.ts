@@ -4,6 +4,8 @@ export interface CreateInvitationPayload {
 
 export interface AcceptInvitationPayload {
   token: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface InvitationResponse {

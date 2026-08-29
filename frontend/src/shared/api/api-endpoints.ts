@@ -41,4 +41,27 @@ export const ApiEndpoints = {
     create: () => '/api/invitations',
     accept: () => '/api/auth/invitations/accept',
   },
+  workflows: {
+    list: () => '/api/workflows',
+    detail: (id: string) => `/api/workflows/${encodeURIComponent(id)}`,
+    create: () => '/api/workflows',
+    update: (id: string) => `/api/workflows/${encodeURIComponent(id)}`,
+    replaceSteps: (id: string) => `/api/workflows/${encodeURIComponent(id)}/steps`,
+  },
+  workflowRequests: {
+    list: () => '/api/workflow-requests',
+    detail: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}`,
+    histories: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}/histories`,
+    create: () => '/api/workflow-requests',
+    approve: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}/approve`,
+    feedback: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}/feedback`,
+    reject: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}/reject`,
+    cancel: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}/cancel`,
+    resubmit: (id: string) => `/api/workflow-requests/${encodeURIComponent(id)}/resubmit`,
+  },
+  notifications: {
+    list: () => '/api/notifications',
+    read: (id: string) => `/api/notifications/${encodeURIComponent(id)}/read`,
+    readAll: () => '/api/notifications/read-all',
+  },
 } as const;

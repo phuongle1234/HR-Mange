@@ -6,26 +6,29 @@ import {
 } from '@mui/material';
 
 export interface PaginationProps {
-  page: number;
+  currentPage?: number;
+  page?: number;
   totalPages: number;
-  total: number;
-  limit: number;
+  total?: number;
+  limit?: number;
   onPageChange: (page: number) => void;
   itemLabel?: string;
   showSummary?: boolean;
 }
 
 export function Pagination({
+  currentPage,
   page,
   totalPages,
-  total,
-  limit,
+  total = 0,
+  limit = 10,
   onPageChange,
   itemLabel = 'items',
   showSummary = true,
 }: PaginationProps) {
+  const resolvedPage = currentPage ?? page ?? 1;
   const safeTotalPages = Math.max(1, totalPages);
-  const safePage = Math.min(Math.max(1, page), safeTotalPages);
+  const safePage = Math.min(Math.max(1, resolvedPage), safeTotalPages);
   const start = total === 0 ? 0 : (safePage - 1) * limit + 1;
   const end = total === 0 ? 0 : Math.min(safePage * limit, total);
 

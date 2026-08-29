@@ -214,3 +214,98 @@ This file is a cumulative summary of the work performed in the current repo stat
 - `WORK-024` backend remains incomplete/partial (accept-invitation endpoint, Mailpit container, `.http` files).
 - `WORK-025` frontend is partially done (Employee list bulk actions, Organization real API wiring, OrganizationType per-row delete); the Employee bulk table editor, `/employees/update` route, and `/invitation/accept` page were not part of these sessions.
 - No additional user confirmation was required because the user explicitly instructed the agent to proceed without a confirmation step.
+
+## Workflow Module Frontend Implementation (2026-08-29)
+
+- The repo already had a partially scaffolded workflow feature set; this session completed the integration and validation work required for the task brief.
+- The route metadata union was widened to include workflow sidebar keys, and the app router now includes the seven required workflow screens: `/workflows`, `/workflows/create`, `/workflows/:id/edit`, `/workflow-requests/new`, `/workflow-requests`, `/workflow-requests/inbox`, and `/workflow-requests/:id`.
+- The route order was kept strict so the literal `/workflow-requests/new` and `/workflow-requests/inbox` paths are registered before the dynamic `/workflow-requests/:id` route.
+- The authenticated app layout was updated with the new Workflow sidebar group and the Notification Bell placed beside the existing account menu without modifying the UserMenu / Change Password / Logout behavior.
+- Shared API endpoints were centralized under `frontend/src/shared/api/api-endpoints.ts` for workflows, workflow requests, and notifications.
+- The workflow socket provider was mounted in the authenticated app shell to invalidate TanStack Query caches on workflow-notification socket events without mutating cached data.
+- The workflow feature compiles end-to-end and passes a frontend production build (`cd frontend; npm run build`).
+- Current repo status: the task brief is implemented and validated; no additional work is outstanding in this scope unless a backend integration later flips the mock API flag off and removes the contract fixtures.
+
+## Direct Source-of-Truth Rule Applied to This Repo
+
+- The user explicitly clarified that all implementation work must be created and edited directly in the real project directory at `C:/test-project`, not in temporary staging worktrees such as `C:/test-project.worktrees/read-agents-md-file-rules`.
+- This requirement was enforced by checking the canonical project tree and then copying the workflow and notification implementation directly into the main repo.
+- The main repo now contains the implementation files directly under:
+  - `frontend/src/features/notification/components/NotificationBell.tsx`
+  - `frontend/src/features/notification/components/NotificationItem.tsx`
+  - `frontend/src/features/workflow/pages/WorkflowListPage.tsx`
+  - `frontend/src/features/workflow/pages/ReviewerInboxPage.tsx`
+  - `frontend/src/features/workflow/pages/WorkflowRequestDetailPage.tsx`
+- The temp worktree is treated as a staging location only; the actual working code is now in `C:/test-project` and not dependent on the temp folder.
+- Hard rule: `C:/test-project.worktrees/` is not a coding location anymore. Future edits must be made only in the main repo at `C:/test-project`.
+- Added shared `frontend/src/shared/hooks/useClickOutside.ts` and wired it to `NotificationBell` so an enabled notification panel closes on document `pointerdown` outside its container.
+- Frontend routing rule clarified: internal app navigation must use React Router client-side routing such as `useNavigate`; do not use `window.location.assign` or other full-page reloads for internal routes.
+- Workflow API contract synchronization pass completed for `WORK-031`: the frontend now uses `canApprove` / `canFeedback` / `canReject` / `canCancel` / `canResubmit`, passes `scope/page/limit/status/workflowId` into `workflowRequests.list`, calls `PUT /api/workflows/:id` instead of `PATCH`, and sends `revision` plus `formData` for the resubmit action.
+- The `USE_MOCK_WORKFLOW_API` flag is disabled so the feature reads from `baseApiService` and `ApiEndpoints` rather than returning mock data.
+
+## WORK-030 Frontend Completion Follow-up (2026-08-29)
+
+- The user pointed out that Agent 3 had marked `WORK-030` complete too early: the components existed, but key UI wiring was missing.
+- `WorkflowCreatePage.tsx` now composes `FormSchemaBuilder`, `WorkflowStepBuilder`, and `WorkflowFlow`. After creating the workflow definition it calls `useReplaceWorkflowStepsMutation()` so the approval chain is saved through `POST /api/workflows/:id/steps`.
+- `WorkflowEditPage.tsx` was rebuilt as a workflow-definition editor. It no longer renders `DynamicFormRenderer`; it loads workflow detail, resets React Hook Form with metadata/form schema, manages local step drafts, shows the React Flow preview, updates the workflow, then calls `replaceSteps`.
+- `WorkflowStepBuilder.tsx` now keeps `organizationTypeName` in sync when organization type selection changes so the flow preview has useful labels.
+- `workflow.api.ts` now sends replace-chain payloads as `{ steps: [{ name, organizationTypeId }] }`, matching the frozen workflow contract instead of posting a raw array.
+- `WorkflowActionBar.tsx` now reads only the contract `canApprove`, `canFeedback`, `canReject`, `canCancel`, and `canResubmit` fields.
+- `WorkflowRequestDetailPage.tsx` now opens a confirmation dialog for actions, requires comments for `feedback` and `reject`, sends `revision` on every action, includes `formData` for `resubmit`, and handles `409 WORKFLOW_REQUEST_STALE` by refetching the request detail and showing a calm info toast without navigating away.
+- Added frontend specs for workflow definitions, workflow requests, and workflow notifications under `docs/07-frontend/pages/`, and updated `docs/07-frontend/architecture.md`, `docs/07-frontend/api-client.md`, and `docs/07-frontend/react-route.md`.
+- Validation: `cd frontend; npm run build` passed. No tests were created or run, per project testing rules and the task brief.
+
+## WORK-032 Auth Refresh Token Task Creation (2026-08-29)
+
+- The user asked whether the project currently has a refresh-token API and whether the frontend Axios service is wired for it.
+- Repo inspection found that backend auth is currently stateless bearer access-token only: no `POST /api/auth/refresh` route exists, `AuthService` documents no refresh token/session store, and `docs/06-api/authentication.md` says there is no refresh endpoint in this phase.
+- Frontend inspection found `api-client.ts` attaches only the access token from Redux and clears auth on `401`; there is no silent-refresh retry path.
+- Created `docs/work/WORK-032-auth-refresh-token.md` as a new draft work item for backend + frontend refresh-token implementation and spec updates.
+- The task records that specs must be amended first because current API/frontend specs explicitly say refresh tokens do not exist.
+
+## Workflow Create Page Table Editors (2026-08-29)
+
+- The user asked to fix frontend `/workflows/create` so **Form Schema** and **Approval Steps** use table layouts like Employee bulk create and can add many rows.
+- Rebuilt `frontend/src/features/workflow/pages/WorkflowCreatePage.tsx` around React Hook Form `useFieldArray` rows for both form fields and approval steps.
+- Added checkbox row selection for both tables, shared `ContextMenu` actions for submit/add/delete, shared `useGridInputNavigation` for arrow-key movement, Zod validation, and `useApplyApiFieldErrors` for server field-error mapping.
+- Form Schema table supports key, label, type, required, placeholder, and select options text (`Label:value, Label 2:value2`).
+- Approval Steps table supports step name and organization type, with organization type options fetched once from `GET /api/organization-types`.
+- The page still creates the workflow metadata/schema first, then calls `replaceSteps` to persist the approval chain, and still renders `WorkflowFlow` as a preview.
+- Updated `docs/07-frontend/pages/workflow-definition.md` to document the table-editor behavior.
+- Validation: `cd frontend; npm run build` passed. No tests were created or run.
+
+## Workflow List Page Rule Alignment (2026-08-29)
+
+- The user asked to fix missing frontend-rule items in `frontend/src/features/workflow/pages/WorkflowListPage.tsx`.
+- `WorkflowListPage` now imports `useState` and `useDebounce`, keeps local status-filter UI state, and passes `{ page, limit, sortBy, sortOrder, status, search }` into `useWorkflowsQuery(...)`.
+- `useWorkflowsQuery` now accepts an optional `WorkflowListQuery`, includes it in the query key, and forwards it to `workflowApiService.list(...)`.
+- `workflowApiService.list(...)` now sends `GET /api/workflows` params for `page`, `limit`, `search`, `status`, `sortBy`, and `sortOrder`; the mock branch also honors search/status/page/limit.
+- `WorkflowListPage` now has a status filter, an `updatedAt` sortable column, fixed viewport-relative scroll height `h-[calc(100vh-290px)]`, sticky table header, and `colSpan={5}` loading/empty rows.
+- Updated `docs/07-frontend/pages/workflow-definition.md` with the workflow list behavior.
+- Validation: `cd frontend; npm run build` passed. No tests were created or run.
+
+## Workflow Edit Page Table Editors (2026-08-29)
+
+- The user asked to make `/workflows/:id/edit` look and behave like `/workflows/create`.
+- Rebuilt `frontend/src/features/workflow/pages/WorkflowEditPage.tsx` with the same table-style Form Schema and Approval Steps editors used by create.
+- Edit now uses React Hook Form `useFieldArray`, Zod validation, row checkboxes, shared `ContextMenu`, shared `useGridInputNavigation`, and `useApplyApiFieldErrors`.
+- Edit resets table rows from workflow detail, converts form schema select options to the same comma text format, previews steps through `WorkflowFlow`, then saves with `PUT /api/workflows/:id` and `replaceSteps`.
+- Updated `docs/07-frontend/pages/workflow-definition.md` so Create/Edit are documented as matching table-editor screens.
+- Validation: `cd frontend; npm run build` passed. No tests were created or run.
+
+## Workflow Request Submit UI Update (2026-08-29)
+
+- The user asked to fix `workflow-requests/new`: use Material UI styling, make **Choose workflow** a searchable `react-select`, keep the label and select on one row, and lay out dynamic workflow form fields so `textarea` uses 12 columns while all other fields use 3 columns.
+- Rebuilt `frontend/src/features/workflow/pages/WorkflowRequestSubmitPage.tsx` with MUI `Paper`/`Box`/`Typography`, a searchable/clearable `react-select` workflow picker, and active-workflow query params.
+- Updated `frontend/src/features/workflow/components/DynamicFormRenderer.tsx` to render a 12-column grid where textarea fields span `col-span-12`, while text/date/number/select/checkbox fields use `md:col-span-3`.
+- Updated `DynamicFormRenderer` again so required dynamic fields render the shared `RequiredHeader` marker beside the label. The user later clarified to keep the current `fields.sort((a, b) => ...)` implementation so textarea fields are sorted after smaller fields before rendering, and the frontend spec was updated to document that choice.
+- Updated `docs/07-frontend/pages/workflow-request.md` with the new submit-page UI behavior.
+- Validation: `cd frontend; npm run build` passed. No tests were created or run.
+
+## Workflow Request List Page Rule Alignment (2026-08-29)
+
+- The user asked to fix frontend-rule gaps in `/workflow-requests` and `/workflow-requests/inbox`.
+- Rebuilt `frontend/src/features/workflow/pages/MyRequestsPage.tsx` and `frontend/src/features/workflow/pages/ReviewerInboxPage.tsx` with debounced search, status filters, `submittedAt` sortable columns, fixed viewport-relative table height, sticky headers, valid `tbody` loading/empty rows with `colSpan={4}`, and full pagination summaries.
+- `workflowRequestApiService.list(...)` mock mode now honors request `scope`, `search`, `status`, `page`, and `limit`, and its fallback meta reflects the actual query values.
+- Updated `docs/07-frontend/pages/workflow-request.md` with request list behavior.
+- Validation: `cd frontend; npm run build` passed. No tests were created or run.
